@@ -38,6 +38,7 @@ public:
 private:
     size_t _max_size;
     std::map<std::string, std::string> _backend;
+    mutable std::mutex _mutex;
 };
 
 } // namespace Backend
