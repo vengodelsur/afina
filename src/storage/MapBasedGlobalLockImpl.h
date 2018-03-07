@@ -53,8 +53,8 @@ private:
     size_t _max_size;
     size_t _current_size;
 
-    std::unordered_map<std::reference_wrapper<const key>, std::list<entry>::const_iterator, std::hash<key>, std::equal_to<key>> _backend;
-    std::list<entry> _cache;
+    mutable std::unordered_map<std::reference_wrapper<const key>, std::list<entry>::const_iterator, std::hash<key>, std::equal_to<key>> _backend;
+    mutable std::list<entry> _cache;
 
     mutable std::mutex _mutex;
     

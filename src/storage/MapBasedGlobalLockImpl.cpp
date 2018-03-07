@@ -51,7 +51,16 @@ bool MapBasedGlobalLockImpl::Delete(const std::string &key) {
 // See MapBasedGlobalLockImpl.h
 bool MapBasedGlobalLockImpl::Get(const std::string &key, std::string &value) const { 
     std::unique_lock<std::mutex> lock(_mutex); //shared?
-    return false; 
+    auto iterator = _backend.find(key);
+    if (iterator == _backend.end()) {
+        return false;
+    }
+
+    _cache.splice(_cache.begin(), _cache, iterator->second);
+    _backend.emplace(key, _cache.cbegin());
+    value = _cache.front().second;
+
+    return true; 
 }
 
 } // namespace Backend
