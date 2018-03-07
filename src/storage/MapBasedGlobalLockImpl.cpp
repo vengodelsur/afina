@@ -16,18 +16,18 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key, const std::string &valu
     }
 
     while (entry_size + _current_size > _max_size) {
-        // get tail iterator from list
-        // delete map element by tail key
-        // delete tail element of list
-        return false;
+        auto tail = _cache.back();
+        size_t tail_size = tail.first.size() + tail.second.size();
+        _backend.erase(tail.first);
+        _cache.pop_back();
+        _current_size -= tail_size;
     }
-    
-    // add to list as head (delete old value if key already exists)
-    // get iterator from list
-    // add to map by this iterator
-    //
 
-    return false; 
+    auto entry = std::make_pair(key, value);
+    _cache.emplace_front(entry);
+    _backend.emplace(key, _cache.cbegin());
+
+    return true; 
 }
 
 // See MapBasedGlobalLockImpl.h
