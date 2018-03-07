@@ -49,7 +49,7 @@ private:
     using key = std::string;
     using value = std::string;    
     using entry = std::pair<const key, value>;
-     ;
+    
     size_t _max_size;
     size_t _current_size;
 
