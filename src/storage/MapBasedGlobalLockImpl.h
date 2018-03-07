@@ -7,6 +7,14 @@
 
 #include <afina/Storage.h>
 
+/*class Entry
+{
+    std::string key;
+    std::string value;
+    Entry* next;
+    Entry* prev;
+};*/
+
 namespace Afina {
 namespace Backend {
 
@@ -36,9 +44,16 @@ public:
     bool Get(const std::string &key, std::string &value) const override;
 
 private:
+    using key = std::string;
+    using value = std::string;    
+     
     size_t _max_size;
-    std::unordered_map<std::string, std::string> _backend;
+    size_t _current_size;
+    std::unordered_map<std::reference_wrapper<const key>, std::list::const_iterator, std::hash<key>, std::equal_to<key>> _backend;
+    std::list<std::pair<const key, value> _cache;
+
     mutable std::mutex _mutex;
+    
 };
 
 } // namespace Backend
