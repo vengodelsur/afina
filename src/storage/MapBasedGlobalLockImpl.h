@@ -2,6 +2,7 @@
 #define AFINA_STORAGE_MAP_BASED_GLOBAL_LOCK_IMPL_H
 
 #include <unordered_map>
+#include<list>
 #include <mutex>
 #include <string>
 
@@ -12,7 +13,7 @@
     std::string key;
     std::string value;
     Entry* next;
-    Entry* prev;
+    Entry* previous;
 };*/
 
 namespace Afina {
@@ -44,13 +45,16 @@ public:
     bool Get(const std::string &key, std::string &value) const override;
 
 private:
+
     using key = std::string;
     using value = std::string;    
-     
+    using entry = std::pair<const key, value>;
+     ;
     size_t _max_size;
     size_t _current_size;
-    std::unordered_map<std::reference_wrapper<const key>, std::list::const_iterator, std::hash<key>, std::equal_to<key>> _backend;
-    std::list<std::pair<const key, value> _cache;
+
+    std::unordered_map<std::reference_wrapper<const key>, std::list<entry>::const_iterator, std::hash<key>, std::equal_to<key>> _backend;
+    std::list<entry> _cache;
 
     mutable std::mutex _mutex;
     
