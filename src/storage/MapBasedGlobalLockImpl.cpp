@@ -35,6 +35,7 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key, const std::string &valu
     auto entry = std::make_pair(key, value);
     _cache.emplace_front(entry);
     _backend.emplace(key, _cache.cbegin());
+    _current_size += entry_size;
 
     return true; 
 }
@@ -64,6 +65,7 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key, const std::stri
     auto entry = std::make_pair(key, value);
     _cache.emplace_front(entry);
     _backend.emplace(key, _cache.cbegin());
+    _current_size += entry_size;
 
     return true;  
 }
@@ -78,11 +80,13 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key, const std::string &valu
         return false;
     } else {
         //move existing key to tail and delete
-        _cache.splice(_cache.end(), _cache, iterator->second);
-        _cache.pop_back();
+        _cache.splice(_cache.begin(), _cache, iterator->second);
+        size_t previous_value_size = _cache.front().second.size();
+        _cache.front().second = value;
+        _current_size += previous_value_size -= value.size();
     }
 
-    size_t entry_size = key.size() + value.size();
+    /*size_t entry_size = key.size() + value.size();
 
     if (entry_size > _max_size) {
         return false;
@@ -98,7 +102,7 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key, const std::string &valu
 
     auto entry = std::make_pair(key, value);
     _cache.emplace_front(entry);
-    _backend.emplace(key, _cache.cbegin());
+    _backend.emplace(key, _cache.cbegin());*/
 
     return true; 
     
@@ -114,8 +118,12 @@ bool MapBasedGlobalLockImpl::Delete(const std::string &key) {
         return true;
     } else {
         //move existing key to tail and delete
-        _cache.splice(_cache.end(), _cache, iterator->second);
+        _cache.splice(--_cache.end(), _cache, iterator->second);
+        auto tail = _cache.back();
+        size_t tail_size = tail.first.size() + tail.second.size();
+        _backend.erase(tail.first);
         _cache.pop_back();
+        _current_size -= tail_size;
         return true;
     }
     return false; 
