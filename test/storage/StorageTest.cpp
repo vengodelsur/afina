@@ -107,11 +107,11 @@ TEST(StorageTest, BigTest) {
 }
 
 TEST(StorageTest, MaxTest) {
-    /*
+        /*
 	Specify min key number in storage after insertion of 1100 key-value pairs
 	This number N can be found as a maximum solution of the equation:
 		[Sum 2 * (NumberOfDigits(k) + 3) where k from N to 1100] <= 1000
-    */
+        */
 	constexpr long min_value = 1030;
     MapBasedGlobalLockImpl storage(1000);
 
