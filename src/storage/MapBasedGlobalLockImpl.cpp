@@ -6,48 +6,52 @@ namespace Afina {
 namespace Backend {
 
 // See MapBasedGlobalLockImpl.h
-bool MapBasedGlobalLockImpl::Put(const std::string &key, const std::string &value) { 
-    std::unique_lock<std::mutex> lock(_mutex);   
-    
-    size_t entry_size = key.size() + value.size();
+bool MapBasedGlobalLockImpl::Put(const std::string &key,
+                                 const std::string &value) {
+    std::unique_lock<std::mutex> lock(_mutex);
+
+    Entry entry(key, value);
+    // size_t entry_size = key.size() + value.size();
+    size_t entry_size = entry.size();
 
     if (entry_size > _max_size) {
         return false;
     }
 
-
     auto iterator = _backend.find(key);
 
     if (iterator != _backend.end()) {
-        //move existing key to tail and delete
+        // move existing key to tail and delete
         _cache.splice(--_cache.end(), _cache, iterator->second);
         _cache.pop_back();
-        
-    } 
+    }
 
-   
     while (entry_size + _current_size > _max_size) {
         auto tail = _cache.back();
-        size_t tail_size = tail.first.size() + tail.second.size();
-        _backend.erase(tail.first);
+        // size_t tail_size = tail.first.size() + tail.second.size();
+        size_t tail_size = tail.size() + tail.size();
+        //_backend.erase(tail.first);
+        _backend.erase(tail.get_key());
         _cache.pop_back();
         _current_size -= tail_size;
     }
 
     _cache.emplace_front(key, value);
-    _backend.emplace(_cache.front().first, _cache.cbegin());
+    //_backend.emplace(_cache.front().first, _cache.cbegin());
+    _backend.emplace(_cache.front().get_key(), _cache.cbegin());
     _current_size += entry_size;
 
-    return true; 
+    return true;
 }
 
 // See MapBasedGlobalLockImpl.h
-bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key, const std::string &value) { 
+bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key,
+                                         const std::string &value) {
     std::unique_lock<std::mutex> lock(_mutex);
 
     if (_backend.find(key) != _backend.end()) {
         return false;
-    } 
+    }
 
     size_t entry_size = key.size() + value.size();
 
@@ -57,34 +61,37 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key, const std::stri
 
     while (entry_size + _current_size > _max_size) {
         auto tail = _cache.back();
-        size_t tail_size = tail.first.size() + tail.second.size();
-        _backend.erase(tail.first);
+        // size_t tail_size = tail.first.size() + tail.second.size();
+        size_t tail_size = tail.size();
+        //_backend.erase(tail.first);
+        _backend.erase(tail.get_key());
         _cache.pop_back();
         _current_size -= tail_size;
     }
 
-    auto entry = std::make_pair(key, value);
+    Entry entry(key, value);
     _cache.emplace_front(entry);
     _backend.emplace(key, _cache.cbegin());
     _current_size += entry_size;
 
-    return true;  
+    return true;
 }
 
 // See MapBasedGlobalLockImpl.h
-bool MapBasedGlobalLockImpl::Set(const std::string &key, const std::string &value) { 
-    std::unique_lock<std::mutex> lock(_mutex); //shared?
+bool MapBasedGlobalLockImpl::Set(const std::string &key,
+                                 const std::string &value) {
+    std::unique_lock<std::mutex> lock(_mutex);  // shared?
 
     auto iterator = _backend.find(key);
 
     if (iterator == _backend.end()) {
         return false;
     } else {
-        //move existing key to tail and delete
+        // move existing key to tail and delete
         _cache.splice(_cache.begin(), _cache, iterator->second);
-        size_t previous_value_size = _cache.front().second.size();
-        _cache.front().second = value;
-        _current_size += previous_value_size -= value.size();
+        size_t size_difference = _cache.front().get_value_size() - value.size();
+        _cache.front().set_value(value);
+        //_current_size += previous_value_size -= ;
     }
 
     /*size_t entry_size = key.size() + value.size();
@@ -105,12 +112,11 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key, const std::string &valu
     _cache.emplace_front(entry);
     _backend.emplace(key, _cache.cbegin());*/
 
-    return true; 
-    
+    return true;
 }
 
 // See MapBasedGlobalLockImpl.h
-bool MapBasedGlobalLockImpl::Delete(const std::string &key) { 
+bool MapBasedGlobalLockImpl::Delete(const std::string &key) {
     std::unique_lock<std::mutex> lock(_mutex);
 
     auto iterator = _backend.find(key);
@@ -118,21 +124,24 @@ bool MapBasedGlobalLockImpl::Delete(const std::string &key) {
     if (iterator == _backend.end()) {
         return true;
     } else {
-        //move existing key to tail and delete
+        // move existing key to tail and delete
         _cache.splice(--_cache.end(), _cache, iterator->second);
         auto tail = _cache.back();
-        size_t tail_size = tail.first.size() + tail.second.size();
-        _backend.erase(tail.first);
+        // size_t tail_size = tail.first.size() + tail.second.size();
+        size_t tail_size = tail.size();
+        //_backend.erase(tail.first);
+        _backend.erase(tail.get_key());
         _cache.pop_back();
         _current_size -= tail_size;
         return true;
     }
-    return false; 
+    return false;
 }
 
 // See MapBasedGlobalLockImpl.h
-bool MapBasedGlobalLockImpl::Get(const std::string &key, std::string &value) const { 
-    std::unique_lock<std::mutex> lock(_mutex); //shared?
+bool MapBasedGlobalLockImpl::Get(const std::string &key,
+                                 std::string &value) const {
+    std::unique_lock<std::mutex> lock(_mutex);  // shared?
     auto iterator = _backend.find(key);
     if (iterator == _backend.end()) {
         return false;
@@ -140,10 +149,10 @@ bool MapBasedGlobalLockImpl::Get(const std::string &key, std::string &value) con
 
     _cache.splice(_cache.begin(), _cache, iterator->second);
     _backend.emplace(key, _cache.cbegin());
-    value = _cache.front().second;
+    value = _cache.front().get_value();
 
-    return true; 
+    return true;
 }
 
-} // namespace Backend
-} // namespace Afina
+}  // namespace Backend
+}  // namespace Afina
