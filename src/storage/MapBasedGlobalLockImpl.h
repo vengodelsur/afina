@@ -32,9 +32,9 @@ class Entry {
     size_t size() const { return _key.size() + _value.size(); }
     size_t get_value_size() const { return _value.size(); }
     void set_value(const std::string &value) const { _value = value; }
-    const std::string& get_key_reference() const {return _key;}
+    const std::string &get_key_reference() const { return _key; }
     std::string get_value() const { return _value; }
-    
+
    private:
     const std::string _key;
     mutable std::string _value;
