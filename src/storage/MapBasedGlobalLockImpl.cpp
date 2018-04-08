@@ -22,9 +22,11 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key,
 
     if (iterator != _backend.end()) {
         // move existing key to tail and delete
-        _cache.splice(--_cache.end(), _cache, iterator->second);
+        //_cache.splice(--_cache.end(), _cache, iterator->second);
         //_cache.pop_back();
-        delete_last();
+        //delete_last();
+        _cache.splice(_cache.begin(), _cache, iterator->second); //doesn't work
+        return set_head_value(key, value); 
     }
 
     while (entry_size + _current_size > _max_size) {
@@ -78,7 +80,7 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key,
 
 bool MapBasedGlobalLockImpl::set_head_value(const std::string &key,
                                  const std::string &value) {
-     if (key.size() + value.size()) {
+     if (key.size() + value.size() > _max_size) {
         return false;
         }
      auto size_difference = _cache.front().get_value_size() - value.size();
@@ -86,6 +88,7 @@ bool MapBasedGlobalLockImpl::set_head_value(const std::string &key,
          delete_last();   
     }
     _cache.front().set_value(value);
+    _current_size += size_difference;
     return true;
     
      
@@ -105,13 +108,8 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key,
     } else {
         
         _cache.splice(_cache.begin(), _cache, iterator->second);
-        //_cache.front().set_value(value);
-        return set_head_value(key, value);
-        
-        
+        return set_head_value(key, value);             
     }
-
-
     return true;
 }
 
