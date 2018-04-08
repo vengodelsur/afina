@@ -37,7 +37,7 @@ bool MapBasedGlobalLockImpl::add_entry(const std::string &key,
          delete_last();   
     }
 
-    _cache.emplace_front(key, value);
+    _cache.emplace_front(entry);
     //_backend.emplace(_cache.front().first, _cache.cbegin());
     _backend.emplace(_cache.front().get_key_reference(), _cache.cbegin());
     _current_size += entry_size;
