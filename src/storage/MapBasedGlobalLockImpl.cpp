@@ -76,40 +76,41 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key,
     return true;
 }
 
+bool MapBasedGlobalLockImpl::set_head_value(const std::string &key,
+                                 const std::string &value) {
+     if (key.size() + value.size()) {
+        return false;
+        }
+     auto size_difference = _cache.front().get_value_size() - value.size();
+     while (size_difference + _current_size > _max_size) {
+         delete_last();   
+    }
+    _cache.front().set_value(value);
+    return true;
+    
+     
+}
+
 // See MapBasedGlobalLockImpl.h
 bool MapBasedGlobalLockImpl::Set(const std::string &key,
                                  const std::string &value) {
     std::unique_lock<std::mutex> lock(_mutex);  // shared?
 
-    auto iterator = _backend.find(key);
+    
 
+    auto iterator = _backend.find(key);
+  
     if (iterator == _backend.end()) {
         return false;
     } else {
-        // move existing key to tail and delete
+        
         _cache.splice(_cache.begin(), _cache, iterator->second);
-        size_t size_difference = _cache.front().get_value_size() - value.size();
-        _cache.front().set_value(value);
-        //_current_size += previous_value_size -= ;
+        //_cache.front().set_value(value);
+        return set_head_value(key, value);
+        
+        
     }
 
-    /*size_t entry_size = key.size() + value.size();
-
-    if (entry_size > _max_size) {
-        return false;
-    }
-
-    while (entry_size + _current_size > _max_size) {
-        auto tail = _cache.back();
-        size_t tail_size = tail.first.size() + tail.second.size();
-        _backend.erase(tail.first);
-        _cache.pop_back();
-        _current_size -= tail_size;
-    }
-
-    auto entry = std::make_pair(key, value);
-    _cache.emplace_front(entry);
-    _backend.emplace(key, _cache.cbegin());*/
 
     return true;
 }

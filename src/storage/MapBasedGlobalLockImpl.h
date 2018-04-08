@@ -66,6 +66,7 @@ class MapBasedGlobalLockImpl : public Afina::Storage {
 
     // Implements Afina::Storage interface
     bool Get(const std::string &key, std::string &value) const override;
+    bool set_head_value(const std::string &key, const std::string &value);
     void delete_last();
 
    private:
