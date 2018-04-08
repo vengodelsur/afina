@@ -69,14 +69,7 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key,
         return false;
     }
 
-    while (entry_size + _current_size > _max_size) {
-        delete_last();
-    }
-
-    
-    _cache.emplace_front(entry);
-    _backend.emplace(key, _cache.cbegin());
-    _current_size += entry_size;
+    return add_entry(key, value);
 
     return true;
 }
