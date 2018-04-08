@@ -8,38 +8,46 @@
 
 #include <afina/Storage.h>
 
-/*class List {
-   public:
-    List() : head(NULL), tail(NULL) {}
-
-   private:
-
-
-   private:
-    Entry *head;
-    Entry *tail;
-};*/
-
 namespace Afina {
 namespace Backend {
-
 class Entry {
-   public:
-    Entry() : _key(NULL), _value(NULL) {}
-    Entry(const std::string &key, const std::string &value)
-        : _key(key), _value(value) {}
+       public:
+        Entry() : _key(NULL), _value(NULL), _next(nullptr), _previous(nullptr) {}
+        Entry(const std::string &key, const std::string &value, Entry* next = nullptr, Entry* previous = nullptr)
+            : _key(key), _value(value), _next(next), _previous(previous) {}
 
-    size_t size() const { return _key.size() + _value.size(); }
-    size_t get_value_size() const { return _value.size(); }
-    void set_value(const std::string &value) const { _value = value; }
-    const std::string &get_key_reference() const { return _key; }
-    std::string get_value() const { return _value; }
+        size_t size() const { return _key.size() + _value.size(); }
+        size_t get_value_size() const { return _value.size(); }
+        
+        void set_value(const std::string &value) const { _value = value; }
+        const std::string &get_key_reference() const { return _key; }
+        std::string get_value() const { return _value; }
+        Entry* get_next() const { return _next; }
+        Entry* get_previous() const { return _previous; }
+
+       private:
+        const std::string _key;
+        mutable std::string _value;
+        Entry *_next;
+        Entry *_previous;
+    };
+class CacheList {
+   public:
+    
+
+    CacheList() : _head(nullptr), _tail(nullptr) {}
+    ~CacheList() {
+        Entry *tmp = _head;
+        while (tmp != nullptr) {
+            Entry *previous = tmp;
+            tmp = tmp->get_next();
+            delete previous;
+        }
+    }
 
    private:
-    const std::string _key;
-    mutable std::string _value;
-    // Entry *next;
-    // Entry *previous;
+    Entry *_head;
+    Entry *_tail;
 };
 
 /**
