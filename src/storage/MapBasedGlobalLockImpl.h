@@ -25,11 +25,14 @@ class Entry {
         Entry* get_next() const { return _next; }
         Entry* get_previous() const { return _previous; }
 
+        Entry *_next;
+        Entry *_previous;
+
        private:
         const std::string _key;
         mutable std::string _value;
-        Entry *_next;
-        Entry *_previous;
+        
+        //Entry& will be used instead of iterator
     };
 class CacheList {
    public:
@@ -43,6 +46,33 @@ class CacheList {
             tmp = tmp->get_next();
             delete previous;
         }
+    }
+    bool MoveToHead(Entry* entry) {
+        Exclude(entry);
+        return AddToHead(entry);
+        
+    }
+   
+    Entry* GetHead() {
+        return _head;
+    }
+    bool AddToHead(Entry* entry) {
+        entry->_next = _head; //copying?
+        _head->_previous = entry;
+        _head = entry;
+        return true;
+    }
+    bool Delete(Entry* entry) { 
+        Exclude(entry);
+        delete entry;
+        return true;
+    }
+    bool Exclude(Entry* entry) {
+        Entry* next = entry->_next;
+        Entry* previous = entry->_previous;
+        previous->_next = next;
+        next->_previous = previous;
+        return true; 
     }
 
    private:
