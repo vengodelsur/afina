@@ -4,7 +4,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
-
+#include <iostream>
 #include <afina/Storage.h>
 
 namespace Afina {
@@ -45,34 +45,66 @@ class CacheList {
             delete previous;
         }
     }
-    bool MoveToHead(Entry *entry) {
+    void MoveToHead(Entry *entry) {
+        if (entry != _head) {
         Exclude(entry);
+
         AddToHead(entry);
+        std::cout << "moved to head" << std::endl;
+        Print();
+        }
+        else { return;}
     }
 
     Entry *GetHead() { return _head; }
     Entry *GetTail() { return _tail; }
     void AddToHead(Entry *entry) {
-        entry->_next = _head;  // copying?
-        _head->_previous = entry;
-        _head = entry;
+        if (_head != nullptr) {
+            entry->_next = _head;  // copying?
+            _head->_previous = entry;
+            _head = entry;
+        } else {
+            entry->_next = _head;
+            _head = entry;
+            _tail = entry;
+        }
+        std::cout << "added to head" << std::endl;
+        Print();
     }
     void DeleteTail() { Delete(_tail); }
     void Delete(Entry *entry) {
         Exclude(entry);
         delete entry;
+        
     }
     void Exclude(Entry *entry) {
         Entry *next = entry->_next;
         Entry *previous = entry->_previous;
-        previous->_next = next;
-        next->_previous = previous;
-        if (entry == _tail) _tail = previous;
-        if (entry == _head) _head = next;
+
+        if (entry != _tail) {
+            next->_previous = previous;
+        } else {
+            _tail = previous;
+        }
+        if (entry != _head) {
+            previous->_next = next;
+        } else {
+            _head = next;
+        }
+        std::cout << "excluded" << std::endl;
+        Print();
     }
 
-    bool AddEntry(const std::string &key, const std::string &value) {}
-
+    void Print() {
+        Entry *tmp = _head;
+        while (tmp != nullptr) {
+            Entry *previous = tmp;
+            std::cout << "Address: " << tmp << " key: " << tmp->get_key_reference() << " value: " << tmp->get_value() << std::endl;
+            tmp = tmp->get_next();
+        
+        }
+        
+    }
    private:
     Entry *_head;
     Entry *_tail;
@@ -85,7 +117,8 @@ class CacheList {
  */
 class MapBasedGlobalLockImpl : public Afina::Storage {
    public:
-    MapBasedGlobalLockImpl(size_t max_size = 1024) : _max_size(max_size) {}
+    MapBasedGlobalLockImpl(size_t max_size = 1024)
+        : _max_size(max_size), _current_size(0) {}
     ~MapBasedGlobalLockImpl() {}
 
     // Implements Afina::Storage interface
@@ -126,7 +159,7 @@ class MapBasedGlobalLockImpl : public Afina::Storage {
     /*mutable std::unordered_map<std::reference_wrapper<const key>,
                                std::list<Entry>::const_iterator, std::hash<key>,
                                std::equal_to<key>>*/
-    mutable std::unordered_map<std::reference_wrapper<const key>, Entry&,
+    mutable std::unordered_map<std::reference_wrapper<const key>, Entry &,
                                std::hash<key>, std::equal_to<key>>
         _backend;
     // mutable std::list<Entry> _cache;
