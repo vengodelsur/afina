@@ -2,6 +2,7 @@
 #define AFINA_STORAGE_MAP_BASED_GLOBAL_LOCK_IMPL_H
 
 #include <afina/Storage.h>
+#include <iostream>
 #include <mutex>
 #include <string>
 #include <unordered_map>
