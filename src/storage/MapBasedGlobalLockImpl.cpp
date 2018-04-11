@@ -90,8 +90,8 @@ bool MapBasedGlobalLockImpl::Get(const std::string &key,
     }
     
     _cache.MoveToHead(&iterator->second);
-    auto head = *_cache.GetHead();
-    _backend.emplace(key, std::ref(head));
+    Entry* head = _cache.GetHead();
+    _backend.emplace(key, std::ref(*head));
     value = _cache.GetHead()->get_value();
 
     return true;
@@ -108,9 +108,7 @@ bool MapBasedGlobalLockImpl::add_entry(const std::string &key,
     _cache.AddToHead(entry);
     //_backend.emplace(_cache.front().first, _cache.cbegin());
     //_backend.emplace(_cache.front().get_key_reference(), _cache.cbegin());
-    //auto head = _cache.GetHead();
     Entry* head = _cache.GetHead();
-    //std::cout << typeid(head).name() << std::endl;
     // std::cout << "adress for saving: " << head << std::endl;
     _backend.emplace(_cache.GetHead()->get_key_reference(), std::ref(*head));
     _current_size += entry_size;
