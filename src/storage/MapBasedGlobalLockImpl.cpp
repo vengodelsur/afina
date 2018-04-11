@@ -15,9 +15,9 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key,
 
         if (iterator != _backend.end()) {
             _cache.MoveToHead(&iterator->second);
-            return set_head_value(key, value);
+            return SetHeadValue(key, value);
         } else {
-            return add_entry(key, value);
+            return AddEntry(key, value);
         }
     } else {
         return false;
@@ -34,7 +34,7 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key,
             return false;
         }
 
-        return add_entry(key, value);
+        return AddEntry(key, value);
     } else {
         return false;
     }
@@ -52,7 +52,7 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key,
             return false;
         } else {
             _cache.MoveToHead(&iterator->second);
-            return set_head_value(key, value);
+            return SetHeadValue(key, value);
         }
         return true;
     } else {
@@ -87,40 +87,40 @@ bool MapBasedGlobalLockImpl::Get(const std::string &key,
     _cache.MoveToHead(&iterator->second);
     Entry* head = _cache.GetHead();
     _backend.emplace(key, std::ref(*head));
-    value = _cache.GetHead()->get_value();
+    value = _cache.GetHead()->GetValue();
 
     return true;
 }
-bool MapBasedGlobalLockImpl::add_entry(const std::string &key,
+bool MapBasedGlobalLockImpl::AddEntry(const std::string &key,
                                        const std::string &value) {
     Entry *entry = new Entry(key, value);
-    size_t entry_size = entry->size();
+    size_t entry_size = entry->Size();
     while (entry_size + _current_size > _max_size) {
-        delete_last();
+        DeleteLast();
     }
 
     _cache.AddToHead(entry);
     Entry* head = _cache.GetHead();
-    _backend.emplace(_cache.GetHead()->get_key_reference(), std::ref(*head));
+    _backend.emplace(_cache.GetHead()->GetKeyReference(), std::ref(*head));
     _current_size += entry_size;
 
     return true;
 }
-void MapBasedGlobalLockImpl::delete_last() {
+void MapBasedGlobalLockImpl::DeleteLast() {
     Entry *tail = _cache.GetTail();
-    size_t tail_size = tail->size();
-    _backend.erase(tail->get_key_reference());
+    size_t tail_size = tail->Size();
+    _backend.erase(tail->GetKeyReference());
     _cache.DeleteTail();
     _current_size -= tail_size;
 }
 
-bool MapBasedGlobalLockImpl::set_head_value(const std::string &key,
+bool MapBasedGlobalLockImpl::SetHeadValue(const std::string &key,
                                             const std::string &value) {
-    auto size_difference = _cache.GetHead()->get_value_size() - value.size();
+    auto size_difference = _cache.GetHead()->GetValueSize() - value.size();
     while (size_difference + _current_size > _max_size) {
-        delete_last();
+        DeleteLast();
     }
-    _cache.GetHead()->set_value(value);
+    _cache.GetHead()->SetValue(value);
     _current_size += size_difference;
     return true;
 }

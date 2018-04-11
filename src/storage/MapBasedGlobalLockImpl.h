@@ -16,14 +16,12 @@ class Entry {
           Entry *next = nullptr, Entry *previous = nullptr)
         : _key(key), _value(value), _next(next), _previous(previous) {}
 
-    size_t size() const { return _key.size() + _value.size(); }
-    size_t get_value_size() const { return _value.size(); }
+    size_t Size() const { return _key.size() + _value.size(); }
+    size_t GetValueSize() const { return _value.size(); }
 
-    void set_value(const std::string &value) const { _value = value; }
-    const std::string &get_key_reference() const { return _key; }
-    std::string get_value() const { return _value; }
-    Entry *get_next() const { return _next; }
-    Entry *get_previous() const { return _previous; }
+    void SetValue(const std::string &value) const { _value = value; }
+    const std::string &GetKeyReference() const { return _key; }
+    std::string GetValue() const { return _value; }
 
     Entry *_next;
     Entry *_previous;
@@ -41,7 +39,7 @@ class CacheList {
         Entry *tmp = _head;
         while (tmp != nullptr) {
             Entry *previous = tmp;
-            tmp = tmp->get_next();
+            tmp = tmp->_next;
             delete previous;
         }
     }
@@ -92,23 +90,23 @@ class CacheList {
     /*void Print() {
         /*Entry *tmp = _head;
         std::cout << "HEAD Address: " << _head
-                  << " key: " << _head->get_key_reference()
-                  << " value: " << _head->get_value()
+                  << " key: " << _head->GetKeyReference()
+                  << " value: " << _head->GetValue()
                   << " next: " << _head->_next
                   << " previous: " << _head->_previous << std::endl;
         std::cout << "TAIL Address: " << _tail
-                  << " key: " << _tail->get_key_reference()
-                  << " value: " << _tail->get_value()
+                  << " key: " << _tail->GetKeyReference()
+                  << " value: " << _tail->GetValue()
                   << " next: " << _tail->_next
                   << " previous: " << _tail->_previous << std::endl;
         while (tmp != nullptr) {
             Entry *previous = tmp;
             std::cout << "Address: " << tmp
-                      << " key: " << tmp->get_key_reference()
-                      << " value: " << tmp->get_value()
+                      << " key: " << tmp->GetKeyReference()
+                      << " value: " << tmp->GetValue()
                       << " next: " << tmp->_next
                       << " previous: " << tmp->_previous << std::endl;
-            tmp = tmp->get_next();
+            tmp = tmp->_next;
         }
     }*/
 
@@ -142,9 +140,9 @@ class MapBasedGlobalLockImpl : public Afina::Storage {
 
     // Implements Afina::Storage interface
     bool Get(const std::string &key, std::string &value) const override;
-    bool set_head_value(const std::string &key, const std::string &value);
-    bool add_entry(const std::string &key, const std::string &value);
-    void delete_last();
+    bool SetHeadValue(const std::string &key, const std::string &value);
+    bool AddEntry(const std::string &key, const std::string &value);
+    void DeleteLast();
     bool CheckSize(const std::string &key, const std::string &value) {
         size_t entry_size = key.size() + value.size();
 
