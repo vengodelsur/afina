@@ -97,9 +97,11 @@ class CacheList {
 
     void Print() {
         Entry *tmp = _head;
+        std::cout << "HEAD Address: " << _head << " key: " << _head->get_key_reference() << " value: " << _head->get_value() << " next: " << _head->_next << " previous: " << _head->_previous << std::endl;
+        std::cout << "TAIL Address: " << _tail << " key: " << _tail->get_key_reference() << " value: " << _tail->get_value() << " next: " << _tail->_next << " previous: " << _tail->_previous << std::endl;
         while (tmp != nullptr) {
             Entry *previous = tmp;
-            std::cout << "Address: " << tmp << " key: " << tmp->get_key_reference() << " value: " << tmp->get_value() << std::endl;
+            std::cout << "Address: " << tmp << " key: " << tmp->get_key_reference() << " value: " << tmp->get_value() << " next: " << tmp->_next << " previous: " << tmp->_previous << std::endl;
             tmp = tmp->get_next();
         
         }
