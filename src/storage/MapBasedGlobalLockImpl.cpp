@@ -14,7 +14,6 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key,
         auto iterator = _backend.find(key);
 
         if (iterator != _backend.end()) {
-            //_cache.splice(_cache.begin(), _cache, iterator->second);
             _cache.MoveToHead(&iterator->second);
             return set_head_value(key, value);
         } else {
@@ -52,7 +51,6 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key,
         if (iterator == _backend.end()) {
             return false;
         } else {
-            //_cache.splice(_cache.begin(), _cache, iterator->second);
             _cache.MoveToHead(&iterator->second);
             return set_head_value(key, value);
         }
@@ -71,9 +69,6 @@ bool MapBasedGlobalLockImpl::Delete(const std::string &key) {
     if (iterator == _backend.end()) {
         return true;
     } else {
-        // move existing key to tail and delete
-        //_cache.splice(--_cache.end(), _cache, iterator->second);
-        // delete_last();
         _cache.Delete(&iterator->second);
         return true;
     }
@@ -104,19 +99,14 @@ bool MapBasedGlobalLockImpl::add_entry(const std::string &key,
         delete_last();
     }
 
-    //_cache.emplace_front(entry);
     _cache.AddToHead(entry);
-    //_backend.emplace(_cache.front().first, _cache.cbegin());
-    //_backend.emplace(_cache.front().get_key_reference(), _cache.cbegin());
     Entry* head = _cache.GetHead();
-    // std::cout << "adress for saving: " << head << std::endl;
     _backend.emplace(_cache.GetHead()->get_key_reference(), std::ref(*head));
     _current_size += entry_size;
 
     return true;
 }
 void MapBasedGlobalLockImpl::delete_last() {
-    // auto tail = _cache.back();
     Entry *tail = _cache.GetTail();
     size_t tail_size = tail->size();
     _backend.erase(tail->get_key_reference());

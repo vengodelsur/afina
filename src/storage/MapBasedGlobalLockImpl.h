@@ -59,7 +59,7 @@ class CacheList {
     Entry *GetTail() { return _tail; }
     void AddToHead(Entry *entry) {
         if (_head != nullptr) {
-            entry->_next = _head;  // copying?
+            entry->_next = _head;  
             _head->_previous = entry;
             _head = entry;
         } else {
