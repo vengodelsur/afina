@@ -1,11 +1,10 @@
 #ifndef AFINA_STORAGE_MAP_BASED_GLOBAL_LOCK_IMPL_H
 #define AFINA_STORAGE_MAP_BASED_GLOBAL_LOCK_IMPL_H
 
+#include <afina/Storage.h>
 #include <mutex>
 #include <string>
 #include <unordered_map>
-#include <iostream>
-#include <afina/Storage.h>
 
 namespace Afina {
 namespace Backend {
@@ -47,13 +46,12 @@ class CacheList {
     }
     void MoveToHead(Entry *entry) {
         if (entry != _head) {
-        Exclude(entry);
+            Exclude(entry);
 
-        AddToHead(entry);
-        std::cout << "moved to head" << std::endl;
-        Print();
+            AddToHead(entry);
+        } else {
+            return;
         }
-        else { return;}
     }
 
     Entry *GetHead() { return _head; }
@@ -68,14 +66,11 @@ class CacheList {
             _head = entry;
             _tail = entry;
         }
-        std::cout << "added to head" << std::endl;
-        Print();
     }
     void DeleteTail() { Delete(_tail); }
     void Delete(Entry *entry) {
         Exclude(entry);
         delete entry;
-        
     }
     void Exclude(Entry *entry) {
         Entry *next = entry->_next;
@@ -91,22 +86,31 @@ class CacheList {
         } else {
             _head = next;
         }
-        std::cout << "excluded" << std::endl;
-        Print();
     }
 
-    void Print() {
-        Entry *tmp = _head;
-        std::cout << "HEAD Address: " << _head << " key: " << _head->get_key_reference() << " value: " << _head->get_value() << " next: " << _head->_next << " previous: " << _head->_previous << std::endl;
-        std::cout << "TAIL Address: " << _tail << " key: " << _tail->get_key_reference() << " value: " << _tail->get_value() << " next: " << _tail->_next << " previous: " << _tail->_previous << std::endl;
+    /*void Print() {
+        /*Entry *tmp = _head;
+        std::cout << "HEAD Address: " << _head
+                  << " key: " << _head->get_key_reference()
+                  << " value: " << _head->get_value()
+                  << " next: " << _head->_next
+                  << " previous: " << _head->_previous << std::endl;
+        std::cout << "TAIL Address: " << _tail
+                  << " key: " << _tail->get_key_reference()
+                  << " value: " << _tail->get_value()
+                  << " next: " << _tail->_next
+                  << " previous: " << _tail->_previous << std::endl;
         while (tmp != nullptr) {
             Entry *previous = tmp;
-            std::cout << "Address: " << tmp << " key: " << tmp->get_key_reference() << " value: " << tmp->get_value() << " next: " << tmp->_next << " previous: " << tmp->_previous << std::endl;
+            std::cout << "Address: " << tmp
+                      << " key: " << tmp->get_key_reference()
+                      << " value: " << tmp->get_value()
+                      << " next: " << tmp->_next
+                      << " previous: " << tmp->_previous << std::endl;
             tmp = tmp->get_next();
-        
         }
-        
-    }
+    }*/
+
    private:
     Entry *_head;
     Entry *_tail;
