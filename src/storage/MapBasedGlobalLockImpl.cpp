@@ -5,6 +5,83 @@
 namespace Afina {
 namespace Backend {
 
+
+
+CacheList::~CacheList() {
+        Entry *tmp = _head;
+        while (tmp != nullptr) {
+            Entry *previous = tmp;
+            tmp = tmp->_next;
+            delete previous;
+        }
+    }
+    void CacheList::MoveToHead(Entry *entry) {
+        if (entry != _head) {
+            Exclude(entry);
+
+            AddToHead(entry);
+        } else {
+            return;
+        }
+    }
+
+    Entry * CacheList::GetHead() { return _head; }
+    Entry * CacheList::GetTail() { return _tail; }
+    void CacheList::AddToHead(Entry *entry) {
+        if (_head != nullptr) {
+            entry->_next = _head;  
+            _head->_previous = entry;
+            _head = entry;
+        } else {
+            entry->_next = _head;
+            _head = entry;
+            _tail = entry;
+        }
+    }
+    void CacheList::DeleteTail() { Delete(_tail); }
+    void CacheList::Delete(Entry *entry) {
+        Exclude(entry);
+        delete entry;
+    }
+    void CacheList::Exclude(Entry *entry) {
+        Entry *next = entry->_next;
+        Entry *previous = entry->_previous;
+
+        if (entry != _tail) {
+            next->_previous = previous;
+        } else {
+            _tail = previous;
+        }
+        if (entry != _head) {
+            previous->_next = next;
+        } else {
+            _head = next;
+        }
+    }
+
+    /*void CacheList::Print() {
+        /*Entry *tmp = _head;
+        std::cout << "HEAD Address: " << _head
+                  << " key: " << _head->GetKeyReference()
+                  << " value: " << _head->GetValue()
+                  << " next: " << _head->_next
+                  << " previous: " << _head->_previous << std::endl;
+        std::cout << "TAIL Address: " << _tail
+                  << " key: " << _tail->GetKeyReference()
+                  << " value: " << _tail->GetValue()
+                  << " next: " << _tail->_next
+                  << " previous: " << _tail->_previous << std::endl;
+        while (tmp != nullptr) {
+            Entry *previous = tmp;
+            std::cout << "Address: " << tmp
+                      << " key: " << tmp->GetKeyReference()
+                      << " value: " << tmp->GetValue()
+                      << " next: " << tmp->_next
+                      << " previous: " << tmp->_previous << std::endl;
+            tmp = tmp->_next;
+        }
+    }*/
+
 // See MapBasedGlobalLockImpl.h
 bool MapBasedGlobalLockImpl::Put(const std::string &key,
                                  const std::string &value) {
