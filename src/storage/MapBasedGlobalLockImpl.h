@@ -55,20 +55,24 @@ class CacheList {
     void DeleteTail();
     void Delete(Entry *entry);
     void Exclude(Entry *entry);
-    void Print() {
+     friend std::ostream &operator<<(std::ostream &out,
+                                    const CacheList &cache_list) {
         Entry* tmp = nullptr;
-        if (_head != nullptr) {
-            std::cout << "HEAD " << *_head << std::endl;
-            tmp = _head->_next;
+        Entry* head = cache_list._head;
+        Entry* tail = cache_list._tail;
+        if (head != nullptr) {
+            out << "HEAD " << *head << std::endl;
+            tmp = head->_next;
         }
-        if (_tail != nullptr) {
-            std::cout << "TAIL " << *_head << std::endl;
+        if (tail != nullptr) {
+            out << "TAIL " << *head << std::endl;
         }
         
         while (tmp != nullptr) {
-            std::cout << *tmp << std::endl;
+            out << *tmp << std::endl;
             tmp = tmp->_next;
         }
+        return out;
     }
 
    private:
