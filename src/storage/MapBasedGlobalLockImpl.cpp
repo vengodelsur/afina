@@ -1,86 +1,7 @@
 #include "MapBasedGlobalLockImpl.h"
 
-#include <mutex>
-
 namespace Afina {
 namespace Backend {
-
-
-
-CacheList::~CacheList() {
-        Entry *tmp = _head;
-        while (tmp != nullptr) {
-            Entry *previous = tmp;
-            tmp = tmp->_next;
-            delete previous;
-        }
-    }
-    void CacheList::MoveToHead(Entry *entry) {
-        if (entry != _head) {
-            Exclude(entry);
-
-            AddToHead(entry);
-        } else {
-            return;
-        }
-    }
-
-    Entry * CacheList::GetHead() { return _head; }
-    Entry * CacheList::GetTail() { return _tail; }
-    void CacheList::AddToHead(Entry *entry) {
-        if (_head != nullptr) {
-            entry->_next = _head;  
-            _head->_previous = entry;
-            _head = entry;
-        } else {
-            entry->_next = _head;
-            _head = entry;
-            _tail = entry;
-        }
-    }
-    void CacheList::DeleteTail() { Delete(_tail); }
-    void CacheList::Delete(Entry *entry) {
-        Exclude(entry);
-        delete entry;
-    }
-    void CacheList::Exclude(Entry *entry) {
-        Entry *next = entry->_next;
-        Entry *previous = entry->_previous;
-
-        if (entry != _tail) {
-            next->_previous = previous;
-        } else {
-            _tail = previous;
-        }
-        if (entry != _head) {
-            previous->_next = next;
-        } else {
-            _head = next;
-        }
-    }
-
-    /*void CacheList::Print() {
-        /*Entry *tmp = _head;
-        std::cout << "HEAD Address: " << _head
-                  << " key: " << _head->GetKeyReference()
-                  << " value: " << _head->GetValue()
-                  << " next: " << _head->_next
-                  << " previous: " << _head->_previous << std::endl;
-        std::cout << "TAIL Address: " << _tail
-                  << " key: " << _tail->GetKeyReference()
-                  << " value: " << _tail->GetValue()
-                  << " next: " << _tail->_next
-                  << " previous: " << _tail->_previous << std::endl;
-        while (tmp != nullptr) {
-            Entry *previous = tmp;
-            std::cout << "Address: " << tmp
-                      << " key: " << tmp->GetKeyReference()
-                      << " value: " << tmp->GetValue()
-                      << " next: " << tmp->_next
-                      << " previous: " << tmp->_previous << std::endl;
-            tmp = tmp->_next;
-        }
-    }*/
 
 // See MapBasedGlobalLockImpl.h
 bool MapBasedGlobalLockImpl::Put(const std::string &key,
@@ -89,11 +10,13 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key,
 
     if (CheckSize(key, value)) {
         auto iterator = _backend.find(key);
-
+        // std::cout << typeid(iterator).name() << std::endl;
         if (iterator != _backend.end()) {
             _cache.MoveToHead(&iterator->second);
+            //_cache.Print();
             return SetHeadValue(key, value);
         } else {
+            //_cache.Print();
             return AddEntry(key, value);
         }
     } else {
@@ -160,16 +83,16 @@ bool MapBasedGlobalLockImpl::Get(const std::string &key,
     if (iterator == _backend.end()) {
         return false;
     }
-    
+
     _cache.MoveToHead(&iterator->second);
-    Entry* head = _cache.GetHead();
+    Entry *head = _cache.GetHead();
     _backend.emplace(key, std::ref(*head));
     value = _cache.GetHead()->GetValue();
 
     return true;
 }
 bool MapBasedGlobalLockImpl::AddEntry(const std::string &key,
-                                       const std::string &value) {
+                                      const std::string &value) {
     Entry *entry = new Entry(key, value);
     size_t entry_size = entry->Size();
     while (entry_size + _current_size > _max_size) {
@@ -177,7 +100,7 @@ bool MapBasedGlobalLockImpl::AddEntry(const std::string &key,
     }
 
     _cache.AddToHead(entry);
-    Entry* head = _cache.GetHead();
+    Entry *head = _cache.GetHead();
     _backend.emplace(_cache.GetHead()->GetKeyReference(), std::ref(*head));
     _current_size += entry_size;
 
@@ -192,8 +115,10 @@ void MapBasedGlobalLockImpl::DeleteLast() {
 }
 
 bool MapBasedGlobalLockImpl::SetHeadValue(const std::string &key,
-                                            const std::string &value) {
+                                          const std::string &value) {
     auto size_difference = _cache.GetHead()->GetValueSize() - value.size();
+    // std::cout << typeid(size_difference).name() << std::endl;
+
     while (size_difference + _current_size > _max_size) {
         DeleteLast();
     }
@@ -202,6 +127,83 @@ bool MapBasedGlobalLockImpl::SetHeadValue(const std::string &key,
     return true;
 }
 
+CacheList::~CacheList() {
+    Entry *tmp = _head;
+    while (tmp != nullptr) {
+        Entry *previous = tmp;
+        tmp = tmp->_next;
+        delete previous;
+    }
+}
+
+Entry *CacheList::GetHead() { return _head; }
+
+Entry *CacheList::GetTail() { return _tail; }
+
+void CacheList::AddToHead(Entry *entry) {
+    if (_head != nullptr) {
+        entry->_next = _head;
+        _head->_previous = entry;
+        _head = entry;
+    } else {
+        entry->_next = _head;
+        _head = entry;
+        _tail = entry;
+    }
+}
+
+void CacheList::Exclude(Entry *entry) {
+    Entry *next = entry->_next;
+    Entry *previous = entry->_previous;
+
+    if (entry != _tail) {
+        next->_previous = previous;
+    } else {
+        _tail = previous;
+    }
+    if (entry != _head) {
+        previous->_next = next;
+    } else {
+        _head = next;
+    }
+}
+void CacheList::Delete(Entry *entry) {
+    Exclude(entry);
+    delete entry;
+}
+
+void CacheList::MoveToHead(Entry *entry) {
+    if (entry != _head) {
+        Exclude(entry);
+
+        AddToHead(entry);
+    }
+}
+
+void CacheList::DeleteTail() { Delete(_tail); }
+
+/*void CacheList::Print() {
+    /*Entry *tmp = _head;
+    std::cout << "HEAD Address: " << _head
+              << " key: " << _head->GetKeyReference()
+              << " value: " << _head->GetValue()
+              << " next: " << _head->_next
+              << " previous: " << _head->_previous << std::endl;
+    std::cout << "TAIL Address: " << _tail
+              << " key: " << _tail->GetKeyReference()
+              << " value: " << _tail->GetValue()
+              << " next: " << _tail->_next
+              << " previous: " << _tail->_previous << std::endl;
+    while (tmp != nullptr) {
+        Entry *previous = tmp;
+        std::cout << "Address: " << tmp
+                  << " key: " << tmp->GetKeyReference()
+                  << " value: " << tmp->GetValue()
+                  << " next: " << tmp->_next
+                  << " previous: " << tmp->_previous << std::endl;
+        tmp = tmp->_next;
+    }
+}*/
 //
 }  // namespace Backend
 }  // namespace Afina

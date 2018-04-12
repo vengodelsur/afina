@@ -9,6 +9,9 @@
 
 namespace Afina {
 namespace Backend {
+using key = std::string;
+using value = std::string;
+
 class Entry {
    public:
     Entry() : _key(NULL), _value(NULL), _next(nullptr), _previous(nullptr) {}
@@ -25,6 +28,14 @@ class Entry {
 
     Entry *_next;
     Entry *_previous;
+    friend std::ostream &operator<<(std::ostream &out, const Entry &entry) {
+        out << "Address: " << &entry;
+        out << " key: " << entry.GetKeyReference();
+        out << " value: " << entry.GetValue();
+        out << " next: " << entry._next;
+        out << " previous: " << entry._previous;
+        return out;
+    }
 
    private:
     const std::string _key;
@@ -44,7 +55,21 @@ class CacheList {
     void DeleteTail();
     void Delete(Entry *entry);
     void Exclude(Entry *entry);
-
+    void Print() {
+        Entry* tmp = nullptr;
+        if (_head != nullptr) {
+            std::cout << "HEAD " << *_head << std::endl;
+            tmp = _head->_next;
+        }
+        if (_tail != nullptr) {
+            std::cout << "TAIL " << *_head << std::endl;
+        }
+        
+        while (tmp != nullptr) {
+            std::cout << *tmp << std::endl;
+            tmp = tmp->_next;
+        }
+    }
 
    private:
     Entry *_head;
@@ -90,15 +115,14 @@ class MapBasedGlobalLockImpl : public Afina::Storage {
     }
 
    private:
-    using key = std::string;
-    using value = std::string;
     // using entry = std::pair<const key, value>;
 
     size_t _max_size;
     size_t _current_size;
 
     /*mutable std::unordered_map<std::reference_wrapper<const key>,
-                               std::list<Entry>::const_iterator, std::hash<key>,
+                               std::list<Entry>::const_iterator,
+       std::hash<key>,
                                std::equal_to<key>>*/
     mutable std::unordered_map<std::reference_wrapper<const key>, Entry &,
                                std::hash<key>, std::equal_to<key>>
