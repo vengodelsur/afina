@@ -18,9 +18,9 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key,
             //std::cout << _cache << std::endl;
             return AddEntry(key, value);
         }
-    } else {
-        return false;
-    }
+    } 
+    return false;
+    
 }
 
 // See MapBasedGlobalLockImpl.h
@@ -34,10 +34,9 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key,
         }
 
         return AddEntry(key, value);
-    } else {
-        return false;
-    }
-    return true;
+    } 
+    return false;
+    
 }
 // See MapBasedGlobalLockImpl.h
 bool MapBasedGlobalLockImpl::Set(const std::string &key,
@@ -53,10 +52,9 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key,
             _cache.MoveToHead(&iterator->second);
             return SetHeadValue(key, value);
         }
-        return true;
-    } else {
-        return false;
     }
+    return false;
+    
 }
 
 // See MapBasedGlobalLockImpl.h
