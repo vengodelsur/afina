@@ -113,8 +113,7 @@ void MapBasedGlobalLockImpl::DeleteLast() {
 
 bool MapBasedGlobalLockImpl::SetHeadValue(const std::string &key,
                                           const std::string &value) {
-    auto size_difference = _cache.GetHead()->GetValueSize() - value.size();
-    // std::cout << typeid(size_difference).name() << std::endl;
+    size_t size_difference = _cache.GetHead()->GetValueSize() - value.size();
 
     while (size_difference + _current_size > _max_size) {
         DeleteLast();
