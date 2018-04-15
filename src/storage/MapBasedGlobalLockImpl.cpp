@@ -98,7 +98,7 @@ bool MapBasedGlobalLockImpl::AddEntry(const std::string &key,
 
     _cache.AddToHead(entry);
     Entry *head = _cache.GetHead();
-    _backend.emplace(_cache.GetHead()->GetKeyReference(), std::ref(*head));
+    _backend.emplace(head->GetKeyReference(), std::ref(*head));
     _current_size += entry_size;
 
     return true;
