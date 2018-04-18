@@ -15,12 +15,11 @@ bool MapBasedGlobalLockImpl::Put(const std::string &key,
             _cache.MoveToHead(&iterator->second);
             return SetHeadValue(key, value);
         } else {
-            //std::cout << _cache << std::endl;
+            // std::cout << _cache << std::endl;
             return AddEntry(key, value);
         }
-    } 
+    }
     return false;
-    
 }
 
 // See MapBasedGlobalLockImpl.h
@@ -34,9 +33,8 @@ bool MapBasedGlobalLockImpl::PutIfAbsent(const std::string &key,
         }
 
         return AddEntry(key, value);
-    } 
+    }
     return false;
-    
 }
 // See MapBasedGlobalLockImpl.h
 bool MapBasedGlobalLockImpl::Set(const std::string &key,
@@ -54,7 +52,6 @@ bool MapBasedGlobalLockImpl::Set(const std::string &key,
         }
     }
     return false;
-    
 }
 
 // See MapBasedGlobalLockImpl.h
@@ -127,7 +124,7 @@ CacheList::~CacheList() {
     Entry *tmp = _head;
     while (tmp != nullptr) {
         Entry *previous = tmp;
-        tmp = tmp->_next;
+        tmp = tmp->GetNext();
         delete previous;
     }
 }
@@ -138,27 +135,27 @@ Entry *CacheList::GetTail() { return _tail; }
 
 void CacheList::AddToHead(Entry *entry) {
     if (_head != nullptr) {
-        entry->_next = _head;
-        _head->_previous = entry;
+        entry->SetNext(_head);
+        _head->SetPrevious(entry);
         _head = entry;
     } else {
-        entry->_next = _head;
+        entry->SetNext(_head);
         _head = entry;
         _tail = entry;
     }
 }
 
 void CacheList::Exclude(Entry *entry) {
-    Entry *next = entry->_next;
-    Entry *previous = entry->_previous;
+    Entry *next = entry->GetNext();
+    Entry *previous = entry->GetPrevious();
 
     if (entry != _tail) {
-        next->_previous = previous;
+        next->SetPrevious(previous);
     } else {
         _tail = previous;
     }
     if (entry != _head) {
-        previous->_next = next;
+        previous->SetNext(next);
     } else {
         _head = next;
     }
@@ -176,7 +173,6 @@ void CacheList::MoveToHead(Entry *entry) {
 }
 
 void CacheList::DeleteTail() { Delete(_tail); }
-
 
 //
 }  // namespace Backend

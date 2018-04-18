@@ -20,14 +20,19 @@ class Entry {
         : _key(key), _value(value), _next(next), _previous(previous) {}
 
     size_t Size() const { return _key.size() + _value.size(); }
-    size_t GetValueSize() const { return _value.size(); }
 
-    void SetValue(const std::string &value) const { _value = value; }
-    const std::string &GetKeyReference() const { return _key; }
     std::string GetValue() const { return _value; }
+    size_t GetValueSize() const { return _value.size(); }
+    void SetValue(const std::string &value) const { _value = value; }
 
-    Entry *_next;
-    Entry *_previous;
+    const std::string &GetKeyReference() const { return _key; }
+
+    Entry *GetPrevious() const { return _previous; }
+    void SetPrevious(Entry *previous) { _previous = previous; }
+
+    Entry *GetNext() const { return _next; }
+    void SetNext(Entry *next) { _next = next; }
+
     friend std::ostream &operator<<(std::ostream &out, const Entry &entry) {
         out << "Address: " << &entry;
         out << " key: " << entry.GetKeyReference();
@@ -40,6 +45,8 @@ class Entry {
    private:
     const std::string _key;
     mutable std::string _value;
+    Entry *_next;
+    Entry *_previous;
 
     // Entry& will be used instead of iterator
 };
@@ -55,22 +62,22 @@ class CacheList {
     void DeleteTail();
     void Delete(Entry *entry);
     void Exclude(Entry *entry);
-     friend std::ostream &operator<<(std::ostream &out,
+    friend std::ostream &operator<<(std::ostream &out,
                                     const CacheList &cache_list) {
-        Entry* tmp = nullptr;
-        Entry* head = cache_list._head;
-        Entry* tail = cache_list._tail;
+        Entry *tmp = nullptr;
+        Entry *head = cache_list._head;
+        Entry *tail = cache_list._tail;
         if (head != nullptr) {
             out << "HEAD " << *head << std::endl;
-            tmp = head->_next;
+            tmp = head->GetNext();
         }
         if (tail != nullptr) {
             out << "TAIL " << *head << std::endl;
         }
-        
+
         while (tmp != nullptr) {
             out << *tmp << std::endl;
-            tmp = tmp->_next;
+            tmp = tmp->GetNext();
         }
         return out;
     }
