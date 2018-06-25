@@ -38,7 +38,7 @@ protected:
     void RunAcceptor();
 
     /**
-     * Methos is running for each connection
+     * Method is running for each connection
      */
     void RunConnection();
 
@@ -46,7 +46,7 @@ private:
     static void *RunAcceptorProxy(void *p);
 
     // Atomic flag to notify threads when it is time to stop. Note that
-    // flag must be atomic in order to safely publisj changes cross thread
+    // flag must be atomic in order to safely publish changes cross thread
     // bounds
     std::atomic<bool> running;
 
