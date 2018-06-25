@@ -128,11 +128,11 @@ void ServerImpl::RunAcceptor() {
         throw std::runtime_error("Failed to open socket");
     }
 
-    // when the server closes the socket,the connection must stay in the TIME_WAIT state to
+    // when the server closes the socket, the connection must stay in the TIME_WAIT state to
     // make sure the client received the acknowledgement that the connection has been terminated.
     // During this time, this port is unavailable to other processes, unless we specify this option
     //
-    // This option let kernel knows that we are OK that multiple threads/processes are listen on the
+    // This option lets kernel know that we are OK that multiple threads/processes are listen on the
     // same port. In a such case kernel will balance input traffic between all listeners (except those who
     // are closed already)
     int opts = 1;
@@ -150,7 +150,7 @@ void ServerImpl::RunAcceptor() {
 
     // Start listening. The second parameter is the "backlog", or the maximum number of
     // connections that we'll allow to queue up. Note that listen() doesn't block until
-    // incoming connections arrive. It just makesthe OS aware that this process is willing
+    // incoming connections arrive. It just makes the OS aware that this process is willing
     // to accept connections on this socket (which is bound to a specific IP and port)
     if (listen(server_socket, 5) == -1) {
         close(server_socket);
