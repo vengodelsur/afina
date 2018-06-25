@@ -14,7 +14,7 @@ It is a compiler directive which instructs the compiler to treat the sequence of
 
 #### Why is function pretty?!
 
-__PRETTY_FUNCTION__ gives the name of the current function and its signature :)
+\_\_PRETTY\_FUNCTION\_\_ gives the name of the current function and its signature :)
 
 #### What is masking sigpipe?
 
