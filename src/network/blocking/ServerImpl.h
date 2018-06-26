@@ -1,10 +1,10 @@
 #ifndef AFINA_NETWORK_BLOCKING_SERVER_H
 #define AFINA_NETWORK_BLOCKING_SERVER_H
 
+#include <pthread.h>
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
-#include <pthread.h>
 #include <unordered_set>
 
 #include <afina/network/Server.h>
@@ -18,7 +18,7 @@ namespace Blocking {
  * Server that is spawning a separate thread for each connection
  */
 class ServerImpl : public Server {
-public:
+   public:
     ServerImpl(std::shared_ptr<Afina::Storage> ps);
     ~ServerImpl();
 
@@ -31,7 +31,7 @@ public:
     // See Server.h
     void Join() override;
 
-protected:
+   protected:
     /**
      * Method is running in the connection acceptor thread
      */
@@ -42,7 +42,7 @@ protected:
      */
     void RunConnection(int client_socket);
 
-private:
+   private:
     static void *RunAcceptorProxy(void *p);
 
     static void *RunConnectionProxy(void *p);
@@ -78,17 +78,19 @@ private:
 
     const size_t CHUNK_SIZE = 2048;
 
-    //needed for passing arguments in pthread_create like http://man7.org/linux/man-pages/man3/pthread_create.3.html
+    // needed for passing arguments in pthread_create like
+    // http://man7.org/linux/man-pages/man3/pthread_create.3.html
     struct ConnectionThreadInfo {
-	ServerImpl* server;
-	int client_socket;
+        ServerImpl *server;
+        int client_socket;
 
-	ConnectionThreadInfo(ServerImpl* p, int number) : server(p), client_socket(number) {}
+        ConnectionThreadInfo(ServerImpl *p, int number)
+            : server(p), client_socket(number) {}
     };
 };
 
-} // namespace Blocking
-} // namespace Network
-} // namespace Afina
+}  // namespace Blocking
+}  // namespace Network
+}  // namespace Afina
 
-#endif // AFINA_NETWORK_BLOCKING_SERVER_H
+#endif  // AFINA_NETWORK_BLOCKING_SERVER_H

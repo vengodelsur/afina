@@ -38,20 +38,22 @@ void *ServerImpl::RunConnectionProxy(void *p) {
     ServerImpl *srv;
     int client_socket;
 
-    ConnectionThreadInfo * parameters = reinterpret_cast<ConnectionThreadInfo *>(p);
+    ConnectionThreadInfo *parameters =
+        reinterpret_cast<ConnectionThreadInfo *>(p);
 
     srv = parameters->server;
     client_socket = parameters->client_socket;
-   
+
     try {
         srv->RunConnection(client_socket);
     } catch (std::runtime_error &ex) {
-        std::cerr << client_socket << "Connection fails: " << ex.what() << std::endl;
+        std::cerr << client_socket << "Connection fails: " << ex.what()
+                  << std::endl;
     }
 
     close(client_socket);
 
-    //todo: delete thread from connections list?
+    // todo: delete thread from connections list?
     delete parameters;
     return 0;
 }
@@ -67,7 +69,8 @@ void ServerImpl::Start(uint32_t port, uint16_t n_workers) {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
 
     // If a client closes a connection, this will generally produce a SIGPIPE
-    // signal that will kill the process. We want to ignore this signal, so send()
+    // signal that will kill the process. We want to ignore this signal, so
+    // send()
     // just returns -1 when this happens.
     sigset_t sig_mask;
     sigemptyset(&sig_mask);
@@ -83,29 +86,37 @@ void ServerImpl::Start(uint32_t port, uint16_t n_workers) {
 
     // The pthread_create function creates a new thread.
     //
-    // The first parameter is a pointer to a pthread_t variable, which we can use
+    // The first parameter is a pointer to a pthread_t variable, which we can
+    // use
     // in the remainder of the program to manage this thread.
     //
     // The second parameter is used to specify the attributes of this new thread
     // (e.g., its stack size). We can leave it NULL here.
     //
-    // The third parameter is the function this thread will run. This function *must*
+    // The third parameter is the function this thread will run. This function
+    // *must*
     // have the following prototype:
     //    void *f(void *args);
     //
-    // Note how the function expects a single parameter of type void*. We are using it to
-    // pass this pointer in order to proxy call to the class member function. The fourth
+    // Note how the function expects a single parameter of type void*. We are
+    // using it to
+    // pass this pointer in order to proxy call to the class member function.
+    // The fourth
     // parameter to pthread_create is used to specify this parameter value.
     //
     // The thread we are creating here is the "server thread", which will be
-    // responsible for listening on port 23300 for incoming connections. This thread,
+    // responsible for listening on port 23300 for incoming connections. This
+    // thread,
     // in turn, will spawn threads to service each incoming connection, allowing
     // multiple clients to connect simultaneously.
-    // Note that, in this particular example, creating a "server thread" is redundant,
-    // since there will only be one server thread, and the program's main thread (the
+    // Note that, in this particular example, creating a "server thread" is
+    // redundant,
+    // since there will only be one server thread, and the program's main thread
+    // (the
     // one running main()) could fulfill this purpose.
     running.store(true);
-    if (pthread_create(&accept_thread, NULL, ServerImpl::RunAcceptorProxy, this) < 0) {
+    if (pthread_create(&accept_thread, NULL, ServerImpl::RunAcceptorProxy,
+                       this) < 0) {
         throw std::runtime_error("Could not create server thread");
     }
 }
@@ -138,9 +149,9 @@ void ServerImpl::RunAcceptor() {
 
     struct sockaddr_in server_addr;
     std::memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;          // IPv4
-    server_addr.sin_port = htons(listen_port); // TCP port number
-    server_addr.sin_addr.s_addr = INADDR_ANY;  // Bind to any address
+    server_addr.sin_family = AF_INET;           // IPv4
+    server_addr.sin_port = htons(listen_port);  // TCP port number
+    server_addr.sin_addr.s_addr = INADDR_ANY;   // Bind to any address
 
     // Arguments are:
     // - Family: IPv4
@@ -151,30 +162,42 @@ void ServerImpl::RunAcceptor() {
         throw std::runtime_error("Failed to open socket");
     }
 
-    // when the server closes the socket, the connection must stay in the TIME_WAIT state to
-    // make sure the client received the acknowledgement that the connection has been terminated.
-    // During this time, this port is unavailable to other processes, unless we specify this option
+    // when the server closes the socket, the connection must stay in the
+    // TIME_WAIT state to
+    // make sure the client received the acknowledgement that the connection has
+    // been terminated.
+    // During this time, this port is unavailable to other processes, unless we
+    // specify this option
     //
-    // This option lets kernel know that we are OK that multiple threads/processes are listen on the
-    // same port. In a such case kernel will balance input traffic between all listeners (except those who
+    // This option lets kernel know that we are OK that multiple
+    // threads/processes are listen on the
+    // same port. In a such case kernel will balance input traffic between all
+    // listeners (except those who
     // are closed already)
     int opts = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opts, sizeof(opts)) == -1) {
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opts,
+                   sizeof(opts)) == -1) {
         close(server_socket);
         throw std::runtime_error("Socket setsockopt() failed");
     }
 
-    // Bind the socket to the address. In other words let kernel know data for what address we'd
+    // Bind the socket to the address. In other words let kernel know data for
+    // what address we'd
     // like to see in the socket
-    if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+    if (bind(server_socket, (struct sockaddr *)&server_addr,
+             sizeof(server_addr)) == -1) {
         close(server_socket);
         throw std::runtime_error("Socket bind() failed");
     }
 
-    // Start listening. The second parameter is the "backlog", or the maximum number of
-    // connections that we'll allow to queue up. Note that listen() doesn't block until
-    // incoming connections arrive. It just makes the OS aware that this process is willing
-    // to accept connections on this socket (which is bound to a specific IP and port)
+    // Start listening. The second parameter is the "backlog", or the maximum
+    // number of
+    // connections that we'll allow to queue up. Note that listen() doesn't
+    // block until
+    // incoming connections arrive. It just makes the OS aware that this process
+    // is willing
+    // to accept connections on this socket (which is bound to a specific IP and
+    // port)
     if (listen(server_socket, 5) == -1) {
         close(server_socket);
         throw std::runtime_error("Socket listen() failed");
@@ -186,17 +209,21 @@ void ServerImpl::RunAcceptor() {
     while (running.load()) {
         std::cout << "network debug: waiting for connection..." << std::endl;
 
-        // When an incoming connection arrives, accept it. The call to accept() blocks until
+        // When an incoming connection arrives, accept it. The call to accept()
+        // blocks until
         // the incoming connection arrives
-        if ((client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &sinSize)) == -1) {
+        if ((client_socket = accept(
+                 server_socket, (struct sockaddr *)&client_addr, &sinSize)) ==
+            -1) {
             close(server_socket);
             throw std::runtime_error("Socket accept() failed");
         }
 
         // TODO: Start new thread and process data from/to connection
-        
+
         {
-            /*std::string msg = "TODO: start new thread and process memcached protocol instead";
+            /*std::string msg = "TODO: start new thread and process memcached
+            protocol instead";
             if (send(client_socket, msg.data(), msg.size(), 0) <= 0) {
                 close(client_socket);
                 close(server_socket);
@@ -204,22 +231,22 @@ void ServerImpl::RunAcceptor() {
             }*/
             std::lock_guard<std::mutex> lock(connections_mutex);
             if (connections.size() + 1 > max_workers) {
-                //todo: some message?
+                // todo: some message?
                 close(client_socket);
-            }
-            else {
+            } else {
                 pthread_t new_connection_thread;
-                if (pthread_create(&new_connection_thread, NULL, ServerImpl::RunConnectionProxy, new ConnectionThreadInfo(this, client_socket)) < 0) {
+                if (pthread_create(
+                        &new_connection_thread, NULL,
+                        ServerImpl::RunConnectionProxy,
+                        new ConnectionThreadInfo(this, client_socket)) < 0) {
                     throw std::runtime_error("Can't create connection thread");
                 }
-                connections.insert(new_connection_thread);          
-
+                connections.insert(new_connection_thread);
             }
             close(client_socket);
         }
-       
     }
-    //todo: wait for all connections
+    // todo: wait for all connections
     // Cleanup on exit...
     close(server_socket);
 }
@@ -231,26 +258,37 @@ void ServerImpl::RunConnection(int client_socket) {
     char chunk[CHUNK_SIZE] = "";
     ssize_t read_length = 0;
     ssize_t read_counter = 0;
+    size_t parsed = 0;
+    bool is_command_parsed = false;
     Protocol::Parser parser;
-    while (running.load()) { //check if connection is ok
-        read_length = recv(client_socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
-        //recv error
+
+    while (running.load()) {  // check if connection is ok
+
+        read_length = recv(client_socket, chunk + read_counter,
+                           CHUNK_SIZE - read_counter, 0);
+        // recv error
         read_counter += read_length;
-            if(read_length < 0) {
-                 //error
-                 close(client_socket);
-                 return;
-            } 
-            if (read_counter == 0){
-                //ok but message is emty
-                close(client_socket);
-                return;
-            }
-           
+        if (read_length < 0) {
+            // todo: error
+            close(client_socket);
+            return;
+        }
+        if (read_counter == 0) {
+            // ok but message is empty
+            close(client_socket);
+            return;
+        }
+        /* from parser documentation:
+        * @param input string to be added to the parsed input
+        * @param size number of bytes in the input buffer that could be read
+        * @param parsed output parameter tells how many bytes was consumed from the
+        * string
+        * @return true if command has been parsed out */
+        is_command_parsed = parser.Parse(chunk, read_counter, parsed);
     }
     close(client_socket);
 }
 
-} // namespace Blocking
-} // namespace Network
-} // namespace Afina
+}  // namespace Blocking
+}  // namespace Network
+}  // namespace Afina
