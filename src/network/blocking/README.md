@@ -18,7 +18,7 @@ It is a compiler directive which instructs the compiler to treat the sequence of
 
 #### What is masking sigpipe?
 
-pthread_sigmask() function is just like sigprocmask() which is used to fetch and/or change the signal mask of the calling thread. The signal mask is the set of signals whose delivery is currently blocked for the caller. [man7.org] (http://man7.org/linux/man-pages/man2/sigprocmask.2.html) SIGPIPE is the "broken pipe" signal, which is sent to a process when it attempts to write to a pipe whose read end has closed (or when it attempts to write to a socket that is no longer open for reading), but not vice versa. [Quora](https://www.quora.com/What-are-SIGPIPEs)
+pthread_sigmask() function is just like sigprocmask() which is used to fetch and/or change the signal mask of the calling thread. The signal mask is the set of signals whose delivery is currently blocked for the caller. [man7.org](http://man7.org/linux/man-pages/man2/sigprocmask.2.html) SIGPIPE is the "broken pipe" signal, which is sent to a process when it attempts to write to a pipe whose read end has closed (or when it attempts to write to a socket that is no longer open for reading), but not vice versa. [Quora](https://www.quora.com/What-are-SIGPIPEs)
 
 #### What does htons do?
 
