@@ -51,7 +51,7 @@ void *ServerImpl::RunConnectionProxy(void *p) {
 
     close(client_socket);
 
-    //delete thread from connections list?
+    //todo: delete thread from connections list?
     delete parameters;
     return 0;
 }
@@ -204,7 +204,7 @@ void ServerImpl::RunAcceptor() {
             }*/
             std::lock_guard<std::mutex> lock(connections_mutex);
             if (connections.size() + 1 > max_workers) {
-                //some message?
+                //todo: some message?
                 close(client_socket);
             }
             else {
@@ -219,7 +219,7 @@ void ServerImpl::RunAcceptor() {
         }
        
     }
-
+    //todo: wait for all connections
     // Cleanup on exit...
     close(server_socket);
 }
