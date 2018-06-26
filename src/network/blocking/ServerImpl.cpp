@@ -228,8 +228,25 @@ void ServerImpl::RunAcceptor() {
 void ServerImpl::RunConnection(int client_socket) {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
     // TODO: All connection work is here
+    char chunk[CHUNK_SIZE] = "";
+    ssize_t read_length = 0;
+    ssize_t read_counter = 0;
     Protocol::Parser parser;
-    while (running.load()) {
+    while (running.load()) { //check if connection is ok
+        read_length = recv(client_socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
+        //recv error
+        read_counter += read_length;
+            if(read_length < 0) {
+                 //error
+                 close(client_socket);
+                 return;
+            } 
+            if (read_counter == 0){
+                //ok but message is emty
+                close(client_socket);
+                return;
+            }
+           
     }
     close(client_socket);
 }
