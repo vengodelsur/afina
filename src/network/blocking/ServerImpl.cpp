@@ -172,15 +172,28 @@ void ServerImpl::RunAcceptor() {
         }
 
         // TODO: Start new thread and process data from/to connection
+        
         {
-            std::string msg = "TODO: start new thread and process memcached protocol instead";
+            /*std::string msg = "TODO: start new thread and process memcached protocol instead";
             if (send(client_socket, msg.data(), msg.size(), 0) <= 0) {
                 close(client_socket);
                 close(server_socket);
                 throw std::runtime_error("Socket send() failed");
+            }*/
+            std::lock_guard<std::mutex> lock(connections_mutex);
+            if (connections.size() + 1 > max_workers) {
+                //some message?
+                close(client_socket);
+            }
+            else {
+                pthread_t new_connection_thread;
+                //create
+                connections.insert(new_connection_thread);          
+
             }
             close(client_socket);
         }
+       
     }
 
     // Cleanup on exit...
