@@ -40,7 +40,7 @@ protected:
     /**
      * Method is running for each connection
      */
-    void RunConnection();
+    void RunConnection(int client_socket);
 
 private:
     static void *RunAcceptorProxy(void *p);
@@ -73,6 +73,8 @@ private:
     // Threads that are processing connection data, permits
     // access only from inside of accept_thread
     std::unordered_set<pthread_t> connections;
+
+    const size_t CHUNK_SIZE = 2048;
 };
 
 } // namespace Blocking

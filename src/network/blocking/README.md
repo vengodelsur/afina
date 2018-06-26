@@ -2,7 +2,7 @@
 
 #### What does "protected" stand for?
 
-It's something betwwen "public" and "private". Children have access to the member. [cplusplus.com](http://www.cplusplus.com/forum/beginner/219643/).
+It's something in between "public" and "private". Children have access to the member. [cplusplus.com](http://www.cplusplus.com/forum/beginner/219643/).
 
 #### What is "atomic"?
 

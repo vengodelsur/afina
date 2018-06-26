@@ -18,6 +18,7 @@
 #include <unistd.h>
 
 #include <afina/Storage.h>
+#include <protocol/Parser.h>
 
 namespace Afina {
 namespace Network {
@@ -187,9 +188,13 @@ void ServerImpl::RunAcceptor() {
 }
 
 // See Server.h
-void ServerImpl::RunConnection() {
+void ServerImpl::RunConnection(int client_socket) {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
     // TODO: All connection work is here
+    Protocol::Parser parser;
+    while (running.load()) {
+    }
+    close(client_socket);
 }
 
 } // namespace Blocking
