@@ -45,6 +45,8 @@ protected:
 private:
     static void *RunAcceptorProxy(void *p);
 
+    static void *RunConnectionProxy(void *p);
+
     // Atomic flag to notify threads when it is time to stop. Note that
     // flag must be atomic in order to safely publish changes cross thread
     // bounds
@@ -75,6 +77,14 @@ private:
     std::unordered_set<pthread_t> connections;
 
     const size_t CHUNK_SIZE = 2048;
+
+    //needed for passing arguments in pthread_create like http://man7.org/linux/man-pages/man3/pthread_create.3.html
+    struct ConnectionThreadInfo {
+	ServerImpl* server;
+	int client_socket;
+
+	ConnectionThreadInfo(ServerImpl* p, int number) : server(p), client_socket(number) {}
+    };
 };
 
 } // namespace Blocking

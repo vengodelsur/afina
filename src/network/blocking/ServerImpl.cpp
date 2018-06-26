@@ -34,6 +34,28 @@ void *ServerImpl::RunAcceptorProxy(void *p) {
     return 0;
 }
 
+void *ServerImpl::RunConnectionProxy(void *p) {
+    ServerImpl *srv;
+    int client_socket;
+
+    ConnectionThreadInfo * parameters = reinterpret_cast<ConnectionThreadInfo *>(p);
+
+    srv = parameters->server;
+    client_socket = parameters->client_socket;
+   
+    try {
+        srv->RunConnection(client_socket);
+    } catch (std::runtime_error &ex) {
+        std::cerr << client_socket << "Connection fails: " << ex.what() << std::endl;
+    }
+
+    close(client_socket);
+
+    //delete thread from connections list?
+    delete parameters;
+    return 0;
+}
+
 // See Server.h
 ServerImpl::ServerImpl(std::shared_ptr<Afina::Storage> ps) : Server(ps) {}
 
@@ -187,7 +209,9 @@ void ServerImpl::RunAcceptor() {
             }
             else {
                 pthread_t new_connection_thread;
-                //create
+                if (pthread_create(&new_connection_thread, NULL, ServerImpl::RunConnectionProxy, new ConnectionThreadInfo(this, client_socket)) < 0) {
+                    throw std::runtime_error("Can't create connection thread");
+                }
                 connections.insert(new_connection_thread);          
 
             }
