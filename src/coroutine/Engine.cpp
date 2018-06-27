@@ -44,10 +44,9 @@ void Engine::Restore(context &ctx) {
 void Engine::yield() {
     context *ready_routine =
         alive;  // alive is a list of routines ready to be scheduled
-    // routine to be run should differ from current one:
     while (ready_routine && ready_routine == cur_routine) {
         ready_routine = ready_routine->next;
-    }
+    }  // routine to be run should differ from current one
     if (ready_routine != nullptr) {
         sched(ready_routine);
     }
@@ -63,7 +62,7 @@ void Engine::sched(void *routine_) {
     if (cur_routine != nullptr) {
         if (setjmp(cur_routine->Environment) > 0) {
             return;
-        }
+        }  // only coroutine can call sched
         Store(*cur_routine);
     }
 
