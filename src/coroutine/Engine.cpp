@@ -40,9 +40,36 @@ void Engine::Restore(context &ctx) {
                                   // status 1 will be returned by setjmp
 }
 
-void Engine::yield() {}
+// find non-active routine and run it
+void Engine::yield() {
+    context *ready_routine =
+        alive;  // alive is a list of routines ready to be scheduled
+    // routine to be run should differ from current one:
+    while (ready_routine && ready_routine == cur_routine) {
+        ready_routine = ready_routine->next;
+    }
+    if (ready_routine != nullptr) {
+        sched(ready_routine);
+    }
+    return;
+}
 
-void Engine::sched(void *routine_) {}
+// stop current routine and run the one given as argument
+void Engine::sched(void *routine_) {
+    if (routine_ == nullptr or routine_ == cur_routine) {
+        return;
+    }
+
+    if (cur_routine != nullptr) {
+        if (setjmp(cur_routine->Environment) > 0) {
+            return;
+        }
+        Store(*cur_routine);
+    }
+
+    cur_routine = reinterpret_cast<context *>(routine_);
+    Restore(*cur_routine);
+}
 
 }  // namespace Coroutine
 }  // namespace Afina
