@@ -264,6 +264,7 @@ void ServerImpl::RunConnection(int client_socket) {
     uint32_t command_body_size;
     std::unique_ptr<Execute::Command> resulting_command;
     std::string arguments;
+    std::string answer;
 
     while (running.load()) {  // check if connection is ok
         parser.Reset();
@@ -323,7 +324,10 @@ void ServerImpl::RunConnection(int client_socket) {
         read_counter -= command_body_size;
 
         arguments = arguments.substr(0, command_body_size - 2);
-        
+        resulting_command->Execute(*this->pStorage, arguments, answer);
+        send(client_socket, answer.data(), answer.size(), 0);
+        //todo: different message sizes
+        //todo: error
         
     }
     close(client_socket);
