@@ -243,7 +243,7 @@ void ServerImpl::RunAcceptor() {
                 }
                 connections.insert(new_connection_thread);
             }
-            close(client_socket);
+            //close(client_socket);
         }
     }
     // todo: wait for all connections
@@ -273,9 +273,11 @@ void ServerImpl::RunConnection(int client_socket) {
             read_length = recv(client_socket, chunk + read_counter,
                                CHUNK_SIZE - read_counter, 0);
             // recv error
+            std::cout << chunk << read_length << std::endl;
             read_counter += read_length;
             if (read_length < 0) {
                 // todo: error
+                
                 close(client_socket);
                 return;
             }
@@ -301,7 +303,7 @@ void ServerImpl::RunConnection(int client_socket) {
                 read_counter - parsed_length);  // destination, source, number
             read_counter -= parsed_length;
         } while (!command_is_parsed);
-
+        
         resulting_command = parser.Build(command_body_size);
 
         if (command_body_size != 0) { command_body_size += 2; } //\r\n
