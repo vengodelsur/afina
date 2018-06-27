@@ -18,7 +18,7 @@ void Engine::Store(context &ctx) {
         if (stack_size > std::get<1>(ctx.Stack)) {
             ctx.ExtendStack(stack_size); //See include/afina/coroutine/Engine.h
         }
-        memcpy(std::get<0>(ctx.Stack), ctx.Low, stack_size); 
+        memcpy(std::get<0>(ctx.Stack), ctx.Low, stack_size); //Stack is stored as tuple of start address and size
         
 
 }
