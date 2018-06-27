@@ -263,9 +263,11 @@ void ServerImpl::RunConnection(int client_socket) {
     Protocol::Parser parser;
     uint32_t command_body_size;
     std::unique_ptr<Execute::Command> resulting_command;
+    std::string arguments;
 
     while (running.load()) {  // check if connection is ok
         parser.Reset();
+        
         do {
             read_length = recv(client_socket, chunk + read_counter,
                                CHUNK_SIZE - read_counter, 0);
@@ -300,6 +302,29 @@ void ServerImpl::RunConnection(int client_socket) {
         } while (!command_is_parsed);
 
         resulting_command = parser.Build(command_body_size);
+
+        if (command_body_size != 0) { command_body_size += 2; } //\r\n
+		if (command_body_size > read_counter) { 
+                        read_length = recv(client_socket, chunk + read_counter,
+                               CHUNK_SIZE - read_counter, 0);
+		arguments.append(chunk, read_counter);
+                command_body_size -= read_counter;
+                read_counter = recv(client_socket, chunk, CHUNK_SIZE, 0);
+                
+                if (read_length <= 0) {
+                // todo: error
+                close(client_socket);
+                return;
+            }
+        }
+
+        arguments.append(chunk, command_body_size);
+        std::memmove(chunk, chunk + command_body_size, read_counter - command_body_size);
+        read_counter -= command_body_size;
+
+        arguments = arguments.substr(0, command_body_size - 2);
+        
+        
     }
     close(client_socket);
 }
