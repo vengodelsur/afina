@@ -311,7 +311,7 @@ void ServerImpl::RunConnection(int client_socket) {
                 command_body_size -= read_counter;
                 read_counter = recv(client_socket, chunk, CHUNK_SIZE, 0);
                 
-                if (read_length <= 0) {
+                if (read_counter <= 0) {
                 // todo: error
                 close(client_socket);
                 return;
