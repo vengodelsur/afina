@@ -37,6 +37,12 @@ private:
         // To include routine in the different lists, such as "alive", "blocked", e.t.c
         struct context *prev = nullptr;
         struct context *next = nullptr;
+
+        void ExtendStack(uint32_t new_size) {
+			delete[] std::get<0>(Stack);
+                        std::get<0>(Stack) = new char[new_size];
+                        std::get<1>(Stack) = new_size;	
+		}
     } context;
 
     /**
@@ -74,6 +80,9 @@ protected:
      * Suspend current coroutine execution and execute given context
      */
     // void Enter(context& ctx);
+
+
+
 
 public:
     Engine() : StackBottom(0), cur_routine(nullptr), alive(nullptr) {}

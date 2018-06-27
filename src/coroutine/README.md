@@ -15,3 +15,5 @@ setjmp [cppreference](https://ru.cppreference.com/w/cpp/utility/program/setjmp)
 longjmp [cppreference](https://ru.cppreference.com/w/cpp/utility/program/longjmp)
 
 
+The only information about jmpbuf you're going to find is "erm, it's an array type storing the information of a calling environment. Filled by setjmp and restored by longjmp".
+
