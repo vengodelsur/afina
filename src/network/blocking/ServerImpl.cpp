@@ -19,7 +19,7 @@
 
 #include <afina/Storage.h>
 #include <protocol/Parser.h>
-
+#include <afina/execute/Command.h>
 namespace Afina {
 namespace Network {
 namespace Blocking {
@@ -258,33 +258,48 @@ void ServerImpl::RunConnection(int client_socket) {
     char chunk[CHUNK_SIZE] = "";
     ssize_t read_length = 0;
     ssize_t read_counter = 0;
-    size_t parsed = 0;
-    bool is_command_parsed = false;
+    size_t parsed_length = 0;
+    bool command_is_parsed = false;
     Protocol::Parser parser;
+    uint32_t command_body_size;
+    std::unique_ptr<Execute::Command> resulting_command;
 
     while (running.load()) {  // check if connection is ok
+        parser.Reset();
+        do {
+            read_length = recv(client_socket, chunk + read_counter,
+                               CHUNK_SIZE - read_counter, 0);
+            // recv error
+            read_counter += read_length;
+            if (read_length < 0) {
+                // todo: error
+                close(client_socket);
+                return;
+            }
+            if (read_counter == 0) {
+                // ok but message is empty
+                close(client_socket);
+                return;
+            }
+            /* from parser documentation:
+            Parse(const std::string &input, size_t &parsed)
+            * @param input string to be added to the parsed input
+            * @param size number of bytes in the input buffer that could be read
+            * @param parsed output parameter tells how many bytes was consumed
+            from the
+            * string
+            * @return true if command has been parsed out
+            The resulting command is stored inside Parser instance*/
+            command_is_parsed =
+                parser.Parse(chunk, read_counter, parsed_length);
+            // in case only part of the chunk has been parsed:
+            std::memmove(
+                chunk, chunk + parsed_length,
+                read_counter - parsed_length);  // destination, source, number
+            read_counter -= parsed_length;
+        } while (!command_is_parsed);
 
-        read_length = recv(client_socket, chunk + read_counter,
-                           CHUNK_SIZE - read_counter, 0);
-        // recv error
-        read_counter += read_length;
-        if (read_length < 0) {
-            // todo: error
-            close(client_socket);
-            return;
-        }
-        if (read_counter == 0) {
-            // ok but message is empty
-            close(client_socket);
-            return;
-        }
-        /* from parser documentation:
-        * @param input string to be added to the parsed input
-        * @param size number of bytes in the input buffer that could be read
-        * @param parsed output parameter tells how many bytes was consumed from the
-        * string
-        * @return true if command has been parsed out */
-        is_command_parsed = parser.Parse(chunk, read_counter, parsed);
+        resulting_command = parser.Build(command_body_size);
     }
     close(client_socket);
 }
