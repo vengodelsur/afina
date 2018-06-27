@@ -273,7 +273,7 @@ void ServerImpl::RunConnection(int client_socket) {
             read_length = recv(client_socket, chunk + read_counter,
                                CHUNK_SIZE - read_counter, 0);
             // recv error
-            std::cout << chunk << read_length << std::endl;
+            //std::cout << "chunk" << chunk << read_length << std::endl;
             read_counter += read_length;
             if (read_length < 0) {
                 // todo: error
@@ -305,7 +305,7 @@ void ServerImpl::RunConnection(int client_socket) {
         } while (!command_is_parsed);
         
         resulting_command = parser.Build(command_body_size);
-
+        
         if (command_body_size != 0) { command_body_size += 2; } //\r\n
 		if (command_body_size > read_counter) { 
                         read_length = recv(client_socket, chunk + read_counter,
@@ -320,14 +320,19 @@ void ServerImpl::RunConnection(int client_socket) {
                 return;
             }
         }
-
+      
         arguments.append(chunk, command_body_size);
+        //std::cout << "arguments" << arguments << std::endl;
         std::memmove(chunk, chunk + command_body_size, read_counter - command_body_size);
         read_counter -= command_body_size;
 
         arguments = arguments.substr(0, command_body_size - 2);
+        //std::cout << "arguments" << arguments << std::endl;
+        
         resulting_command->Execute(*this->pStorage, arguments, answer);
         send(client_socket, answer.data(), answer.size(), 0);
+        //std::cout << "answer" << answer << std::endl;
+        
         //todo: different message sizes
         //todo: error
         
