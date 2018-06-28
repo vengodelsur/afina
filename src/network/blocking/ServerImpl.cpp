@@ -278,9 +278,9 @@ void ServerImpl::RunConnection(int client_socket) {
     std::unique_ptr<Execute::Command> resulting_command;
     std::string arguments;
     std::string answer = "";
-    bool error = false;
+    bool no_errors = true;
 
-    while (running.load() && !error) {
+    while (running.load() && no_errors) {
         try {
             command_is_parsed = false;
             answer = std::string(
@@ -312,7 +312,7 @@ void ServerImpl::RunConnection(int client_socket) {
         } catch (std::runtime_error &ex) {
             answer = std::string("ERROR ") + answer + ex.what() +
                      std::string("\r\n");
-            error = true;
+            no_errors = false;
         }
 
         answer += std::string("\r\n");
@@ -347,10 +347,9 @@ bool ServerImpl::ReadCommand(int client_socket, char *chunk,
     read_counter += read_length;
 
     if (read_length < 0) {
-        // todo: error
-
         Close(client_socket);
-        return false;
+        throw std::runtime_error("Socket recv() failed");
+
     }
     if (read_counter == 0) {
         // ok but message is empty
@@ -387,7 +386,15 @@ bool ServerImpl::ExtractArguments(int client_socket, char *chunk,
         arguments.append(chunk, read_counter);
         command_body_size -= read_counter;
         read_counter = recv(client_socket, chunk, CHUNK_SIZE * sizeof(char), 0);
-        if (read_counter <= 0) return false;
+        if (read_counter < 0) {
+            Close(client_socket);
+            throw std::runtime_error("Socket recv() failed");
+
+        }
+        if (read_counter == 0) {
+            // ok but message is empty
+            return false;
+        }
     }
 
     arguments.append(chunk, command_body_size);
