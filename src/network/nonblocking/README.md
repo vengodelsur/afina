@@ -16,3 +16,6 @@ The htons() function converts the unsigned short integer hostshort from host byt
 
 [Wikipedia (in Russian)](https://ru.wikipedia.org/wiki/Epoll)
 
+#### Erm... SO_REUSEADDR...
+SO_REUSEADDR indicates that the rules used in validating addresses supplied in a bind call should allow reuse of local addresses. For AF_INET sockets this means that a socket may bind, except when there is an active listening socket bound to the address. [man7.org](http://man7.org/linux/man-pages/man7/socket.7.html)
+
