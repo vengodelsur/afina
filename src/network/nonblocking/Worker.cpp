@@ -20,6 +20,8 @@ Worker::Worker(std::shared_ptr<Afina::Storage> ps) {
 // See Worker.h
 Worker::~Worker() {
     // TODO: implementation here
+    Stop();
+    Join();
 }
 
 // See Worker.h
@@ -31,13 +33,15 @@ void Worker::Start(int server_socket) {
 // See Worker.h
 void Worker::Stop() {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
-    // TODO: implementation here
+    running.store(false);
+    shutdown(server_socket, SHUT_RDWR); //further receptions and transmissions will be disallowed
 }
 
 // See Worker.h
 void Worker::Join() {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
-    // TODO: implementation here
+     pthread_join(thread, nullptr);
+     //If retval is not NULL, then pthread_join() copies the exit status of the target thread (i.e., the value that the target thread supplied to pthread_exit(3)) into the location pointed to by retval. 
 }
 
 // See Worker.h

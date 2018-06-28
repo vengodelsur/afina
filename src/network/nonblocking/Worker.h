@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <pthread.h>
-
+#include <atomic>
 namespace Afina {
 
 // Forward declaration, see afina/Storage.h
@@ -54,6 +54,8 @@ private:
     pthread_t thread;
 
     int server_socket;
+
+    std::atomic<bool> running; //enum class to tell between stopping and stopped worker?
    
     
 };
