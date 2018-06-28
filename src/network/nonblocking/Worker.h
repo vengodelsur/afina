@@ -50,10 +50,16 @@ protected:
     void OnRun(void *args);
 
 private:
+    //Each worker is run in its own thread
     pthread_t thread;
+
+    int server_socket;
+   
+    
 };
 
 } // namespace NonBlocking
 } // namespace Network
 } // namespace Afina
 #endif // AFINA_NETWORK_NONBLOCKING_WORKER_H
+
