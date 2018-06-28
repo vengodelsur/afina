@@ -18,8 +18,13 @@
 #include <unistd.h>
 
 #include <afina/Storage.h>
-#include <protocol/Parser.h>
+
 #include <afina/execute/Command.h>
+#include "../../protocol/Parser.h"
+
+#include <algorithm>
+#include <sstream>
+
 namespace Afina {
 namespace Network {
 namespace Blocking {
@@ -29,7 +34,7 @@ void *ServerImpl::RunAcceptorProxy(void *p) {
     try {
         srv->RunAcceptor();
     } catch (std::runtime_error &ex) {
-        std::cerr << "Server fails: " << ex.what() << std::endl;
+        std::cerr << "Server acception fails: " << ex.what() << std::endl;
     }
     return 0;
 }
@@ -53,8 +58,10 @@ void *ServerImpl::RunConnectionProxy(void *p) {
 
     close(client_socket);
 
-    // todo: delete thread from connections list?
     delete parameters;
+    std::lock_guard<std::mutex> lock(srv->connections_mutex);
+    srv->connections.erase(pthread_self());
+
     return 0;
 }
 
@@ -215,26 +222,23 @@ void ServerImpl::RunAcceptor() {
         if ((client_socket = accept(
                  server_socket, (struct sockaddr *)&client_addr, &sinSize)) ==
             -1) {
-            close(server_socket);
+            close(client_socket);
             throw std::runtime_error("Socket accept() failed");
         }
 
         // TODO: Start new thread and process data from/to connection
-
         {
-            /*std::string msg = "TODO: start new thread and process memcached
-            protocol instead";
-            if (send(client_socket, msg.data(), msg.size(), 0) <= 0) {
-                close(client_socket);
-                close(server_socket);
-                throw std::runtime_error("Socket send() failed");
-            }*/
             std::lock_guard<std::mutex> lock(connections_mutex);
             if (connections.size() + 1 > max_workers) {
-                // todo: some message?
+                std::string msg = "Too many connections";
+                if (send(client_socket, msg.data(), msg.size(), 0) <= 0) {
+                    close(client_socket);
+                    throw std::runtime_error("Socket send() failed");
+                }
                 close(client_socket);
             } else {
                 pthread_t new_connection_thread;
+
                 if (pthread_create(
                         &new_connection_thread, NULL,
                         ServerImpl::RunConnectionProxy,
@@ -243,10 +247,16 @@ void ServerImpl::RunAcceptor() {
                 }
                 connections.insert(new_connection_thread);
             }
-            //close(client_socket);
         }
     }
-    // todo: wait for all connections
+
+    {
+        std::unique_lock<std::mutex> lock(connections_mutex);
+        while (!connections.empty()) {
+            connections_cv.wait(lock);
+        }
+    }
+
     // Cleanup on exit...
     close(server_socket);
 }
@@ -258,86 +268,143 @@ void ServerImpl::RunConnection(int client_socket) {
     char chunk[CHUNK_SIZE] = "";
     ssize_t read_length = 0;
     ssize_t read_counter = 0;
+    ssize_t sent_length = 0;
+    ssize_t sent_counter = 0;
     size_t parsed_length = 0;
+    ssize_t answer_size = 0;
     bool command_is_parsed = false;
     Protocol::Parser parser;
     uint32_t command_body_size;
     std::unique_ptr<Execute::Command> resulting_command;
     std::string arguments;
-    std::string answer;
+    std::string answer = "";
+    bool error = false;
 
-    while (running.load()) {  // check if connection is ok
-        parser.Reset();
-        
-        do {
-            read_length = recv(client_socket, chunk + read_counter,
-                               CHUNK_SIZE - read_counter, 0);
-            // recv error
-            //std::cout << "chunk" << chunk << read_length << std::endl;
-            read_counter += read_length;
-            if (read_length < 0) {
-                // todo: error
-                
-                close(client_socket);
+    while (running.load() && !error) {
+        try {
+            command_is_parsed = false;
+            answer = std::string(
+                "Problem when parsing command ");  // it will stay if next step
+                                                   // throws an exception
+            do {
+                if (!ReadCommand(client_socket, chunk, read_counter,
+                                 read_length, parsed_length, command_is_parsed,
+                                 parser)) {
+                    Close(client_socket);
+                    return;
+                }
+
+            } while (!command_is_parsed);
+
+            resulting_command = parser.Build(command_body_size);
+            parser.Reset();
+
+            answer = std::string("Problem when extracting arguments ");
+
+            if (!ExtractArguments(client_socket, chunk, read_counter,
+                                  command_body_size, arguments)) {
+                Close(client_socket);
                 return;
             }
-            if (read_counter == 0) {
-                // ok but message is empty
-                close(client_socket);
-                return;
-            }
-            /* from parser documentation:
-            Parse(const std::string &input, size_t &parsed)
-            * @param input string to be added to the parsed input
-            * @param size number of bytes in the input buffer that could be read
-            * @param parsed output parameter tells how many bytes was consumed
-            from the
-            * string
-            * @return true if command has been parsed out
-            The resulting command is stored inside Parser instance*/
-            command_is_parsed =
-                parser.Parse(chunk, read_counter, parsed_length);
-            // in case only part of the chunk has been parsed:
-            std::memmove(
-                chunk, chunk + parsed_length,
-                read_counter - parsed_length);  // destination, source, number
-            read_counter -= parsed_length;
-        } while (!command_is_parsed);
-        
-        resulting_command = parser.Build(command_body_size);
-        
-        if (command_body_size != 0) { command_body_size += 2; } //\r\n
-		if (command_body_size > read_counter) { 
-                        read_length = recv(client_socket, chunk + read_counter,
-                               CHUNK_SIZE - read_counter, 0);
-		arguments.append(chunk, read_counter);
-                command_body_size -= read_counter;
-                read_counter = recv(client_socket, chunk, CHUNK_SIZE, 0);
-                
-                if (read_counter <= 0) {
-                // todo: error
-                close(client_socket);
-                return;
+            answer = std::string("Problem when executing command ");
+
+            resulting_command->Execute(*pStorage, arguments, answer);
+        } catch (std::runtime_error &ex) {
+            answer = std::string("ERROR ") + answer + ex.what() +
+                     std::string("\r\n");
+            error = true;
+        }
+
+        answer += std::string("\r\n");
+
+        // send answer
+        answer_size = answer.size();
+        if (answer.size() > 0) {
+            answer_size = answer.size();
+            sent_counter = 0;
+            while (answer_size > 0) {
+                sent_length = send(client_socket, answer.data() + sent_counter,
+                                   answer.size() - sent_counter, 0);
+                if (sent_length <= 0) {
+                    Close(client_socket);
+                    return;
+                }
+                answer_size -= sent_length;
+                sent_counter += sent_length;
             }
         }
-      
-        arguments.append(chunk, command_body_size);
-        //std::cout << "arguments" << arguments << std::endl;
-        std::memmove(chunk, chunk + command_body_size, read_counter - command_body_size);
-        read_counter -= command_body_size;
-
-        arguments = arguments.substr(0, command_body_size - 2);
-        //std::cout << "arguments" << arguments << std::endl;
-        
-        resulting_command->Execute(*this->pStorage, arguments, answer);
-        send(client_socket, answer.data(), answer.size(), 0);
-        //std::cout << "answer" << answer << std::endl;
-        
-        //todo: different message sizes
-        //todo: error
-        
     }
-    close(client_socket);
+
+    Close(client_socket);
+}
+
+bool ServerImpl::ReadCommand(int client_socket, char *chunk,
+                             ssize_t &read_counter, ssize_t &read_length,
+                             size_t &parsed_length, bool &command_is_parsed,
+                             Protocol::Parser &parser) {
+    read_length =
+        recv(client_socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
+    read_counter += read_length;
+
+    if (read_length < 0) {
+        // todo: error
+
+        Close(client_socket);
+        return false;
+    }
+    if (read_counter == 0) {
+        // ok but message is empty
+        Close(client_socket);
+        return false;
+    }
+
+    /* from parser documentation:
+    Parse(const std::string &input, size_t &parsed)
+    * @param input string to be added to the parsed input
+    * @param size number of bytes in the input buffer that could be read
+    * @param parsed output parameter tells how many bytes was consumed
+    from the
+    * string
+   * @return true if command has been parsed out
+    The resulting command is stored inside Parser instance*/
+    command_is_parsed = parser.Parse(chunk, read_counter, parsed_length);
+
+    // in case only part of the chunk has been parsed:
+    std::memmove(chunk, chunk + parsed_length,
+                 CHUNK_SIZE - parsed_length);  // destination, source, number
+    read_counter -= parsed_length;
+    return true;
+}
+
+bool ServerImpl::ExtractArguments(int client_socket, char *chunk,
+                                  ssize_t &read_counter,
+                                  uint32_t &command_body_size,
+                                  std::string &arguments) {
+    if (command_body_size) {
+        command_body_size += 2;  // \r\n
+    }
+    while (command_body_size > read_counter) {
+        arguments.append(chunk, read_counter);
+        command_body_size -= read_counter;
+        read_counter = recv(client_socket, chunk, CHUNK_SIZE * sizeof(char), 0);
+        if (read_counter <= 0) return false;
+    }
+
+    arguments.append(chunk, command_body_size);
+    std::memmove(chunk, chunk + command_body_size,
+                 read_counter - command_body_size);
+    read_counter -= command_body_size;
+    if (command_body_size > 2) {
+        arguments = arguments.substr(0, command_body_size - 2);  // \r\n
+    }
+
+    return true;
+}
+
+void ServerImpl::Close(int client_socket) {
+    std::unique_lock<std::mutex> lock(connections_mutex);
+    connections.erase(pthread_self());
+    connections_cv.notify_all();
 }
 
 }  // namespace Blocking

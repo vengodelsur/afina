@@ -8,6 +8,7 @@
 #include <unordered_set>
 
 #include <afina/network/Server.h>
+#include "../../protocol/Parser.h"
 
 namespace Afina {
 namespace Network {
@@ -41,10 +42,16 @@ class ServerImpl : public Server {
      * Method is running for each connection
      */
     void RunConnection(int client_socket);
+    bool ReadCommand(int client_socket, char *chunk, ssize_t &read_counter,
+                     ssize_t &read_length, size_t &parsed_length,
+                     bool &command_is_parsed, Protocol::Parser &parser);
+    bool ExtractArguments(int client_socket, char *chunk, ssize_t &read_counter,
+                          uint32_t &command_body_size, std::string &arguments);
+
+    void Close(int client_socket);
 
    private:
     static void *RunAcceptorProxy(void *p);
-
     static void *RunConnectionProxy(void *p);
 
     // Atomic flag to notify threads when it is time to stop. Note that
@@ -77,7 +84,6 @@ class ServerImpl : public Server {
     std::unordered_set<pthread_t> connections;
 
     const size_t CHUNK_SIZE = 2048;
-
     // needed for passing arguments in pthread_create like
     // http://man7.org/linux/man-pages/man3/pthread_create.3.html
     struct ConnectionThreadInfo {
