@@ -44,12 +44,15 @@ public:
     void Join();
 
 protected:
+    
     /**
      * Method executing by background thread
      */
-    void OnRun(void *args);
+    void OnRun(int server_socket);
 
 private:
+
+    static void *RunWorkerProxy(void *p);
     //Each worker is run in its own thread
     pthread_t thread;
 
