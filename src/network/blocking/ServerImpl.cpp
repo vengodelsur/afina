@@ -129,15 +129,22 @@ void ServerImpl::Start(uint32_t port, uint16_t n_workers) {
 }
 
 // See Server.h
+//all workers are signalled to stop
 void ServerImpl::Stop() {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
     running.store(false);
+    Join();
 }
 
 // See Server.h
+//block thread until all threads stop
 void ServerImpl::Join() {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
     pthread_join(accept_thread, 0);
+    std::unique_lock<std::mutex> lock(connections_mutex);
+    while (!connections.empty()) {
+        connections_cv.wait(lock);
+    }
 }
 
 // See Server.h
@@ -245,6 +252,7 @@ void ServerImpl::RunAcceptor() {
                         new ConnectionThreadInfo(this, client_socket)) < 0) {
                     throw std::runtime_error("Can't create connection thread");
                 }
+                pthread_detach(new_connection_thread);
                 connections.insert(new_connection_thread);
             }
         }
@@ -411,7 +419,7 @@ bool ServerImpl::ExtractArguments(int client_socket, char *chunk,
 void ServerImpl::Close(int client_socket) {
     std::unique_lock<std::mutex> lock(connections_mutex);
     connections.erase(pthread_self());
-    connections_cv.notify_all();
+    connections_cv.notify_one();
 }
 
 }  // namespace Blocking

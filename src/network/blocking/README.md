@@ -27,3 +27,15 @@ The htons() function converts the unsigned short integer hostshort from host byt
 #### Erm... SO_REUSEADDR...
 SO_REUSEADDR indicates that the rules used in validating addresses supplied in a bind call should allow reuse of local addresses. For AF_INET sockets this means that a socket may bind, except when there is an active listening socket bound to the address. [man7.org](http://man7.org/linux/man-pages/man7/socket.7.html)
 
+#### Why detach?
+
+"A thread may either be joinable or detached.  If a thread is
+       joinable, then another thread can call pthread_join(3) to wait for
+       the thread to terminate and fetch its exit status.  Only when a
+       terminated joinable thread has been joined are the last of its
+       resources released back to the system.  When a detached thread
+       terminates, its resources are automatically released back to the
+       system: it is not possible to join with the thread in order to obtain
+       its exit status.  Making a thread detached is useful for some types
+       of daemon threads whose exit status the application does not need to
+       care about. " [man7.org](http://man7.org/linux/man-pages/man3/pthread_create.3.html)
