@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <vector>
 
+#include "../../protocol/Parser.h"
+
 namespace Afina {
 
 // Forward declaration, see afina/Storage.h
@@ -16,13 +18,25 @@ namespace Network {
 namespace NonBlocking {
 
 const uint32_t EPOLLEXCLUSIVE = (1 << 28); // why do we have to set it explicitly?
-struct Connection {
-    Connection(int fd) : socket(fd) {}
-    ~Connection() {
+enum class State {
+    ReadCommand,
+    ExtractArguments,
+    SendAnswer
+};
+
+class Connection {
+public:
+    Connection(int fd) : socket(fd), state(State::ReadCommand) {
+        read_chunk = "";
+        answer = "";
+    }
+    ~Connection(void) {
         close(socket);
     }
     int socket;
-    
+    std::string read_chunk;
+    std::string answer;
+    State state;
 };
 /**
  * # Thread running epoll
@@ -83,6 +97,7 @@ private:
     std::vector<std::unique_ptr<Connection>> _connections;
    
     int _epoll_fd;
+    std::shared_ptr<Afina::Storage> _storage_ptr;
     
 };
 

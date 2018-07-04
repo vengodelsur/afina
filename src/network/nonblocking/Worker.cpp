@@ -6,13 +6,16 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include "Utils.h"
+#include <protocol/Parser.h>
+#include <afina/execute/Command.h>
+#include <cstring>
 
 namespace Afina {
 namespace Network {
 namespace NonBlocking {
 
 // See Worker.h
-Worker::Worker(std::shared_ptr<Afina::Storage> ps) {
+Worker::Worker(std::shared_ptr<Afina::Storage> ps) : _storage_ptr(ps){
     // TODO: implementation here
 }
 
@@ -55,13 +58,14 @@ void Worker::Join() {
     // pthread_exit(3)) into the location pointed to by retval.
 }
 void *Worker::RunWorkerProxy(void *p) {
-    Worker *wrkr = reinterpret_cast<Worker *>(p);
-    try {
-        wrkr->OnRun(wrkr->_server_socket);
-    } catch (std::runtime_error &ex) {
-        std::cerr << "Worker fails: " << ex.what() << std::endl;
-    }
+
+    std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
+    WorkerInfo* parameters = reinterpret_cast<WorkerInfo*>(p);
+    Worker* worker = parameters->worker;
+    int _server_socket = parameters->server_socket;
+    worker->OnRun(_server_socket);
     return 0;
+    // add try-catch
 }
 
 // See Worker.h
@@ -189,9 +193,14 @@ void Worker::FinishWorkWithClient(int client_socket) {
 }
 bool Worker::Process(Connection* connection) {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
-    
+    const size_t CHUNK_SIZE = 2048;
+    char chunk[CHUNK_SIZE];
+    Protocol::Parser parser;
+    int socket = connection->socket;
+
     return false;
 }
+
 
 }  // namespace NonBlocking
 }  // namespace Network
