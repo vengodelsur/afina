@@ -92,6 +92,21 @@ void Worker::OnRun(int server_socket) { //read, write
 
     // 3. Accept new connections, don't forget to call make_socket_nonblocking on
     //    the client socket descriptor
+
+     while (_running.load()) {
+        // timeout -1 makes epoll_wait wait indefinitely
+        int events_number = epoll_wait(epoll_fd, events_chunk, _max_events, -1);
+        // returns the number of fds ready for I/O, 0 if no fd became ready during the timeout, -1 for error (errno set).
+        
+        if (events_number== -1) {
+            throw std::runtime_error("Error in epoll_wait");
+        }
+
+        for (int i = 0; i < events_number; i++) {
+        // work with each event
+        }
+    }
+
     // 4. Add connections to the local context
     // 5. Process connection events
     //
