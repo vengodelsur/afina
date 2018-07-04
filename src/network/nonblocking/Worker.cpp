@@ -30,10 +30,12 @@ void Worker::Start(int server_socket) {
 
     _running.store(true);
     _server_socket = server_socket;
+    pthread_t thread; //docs
     //the same way as RunAcceptor in ServerImpl for blocking server
-    if (pthread_create(&_thread, nullptr, Worker::RunWorkerProxy, this) < 0) {
+    if (pthread_create(&thread, nullptr, Worker::RunWorkerProxy, new WorkerInfo(this, _server_socket)) < 0) {
         throw std::runtime_error("Can't create server thread");
     } // If attr is NULL, then the thread is created with default attributes.
+
 }
 
 // See Worker.h

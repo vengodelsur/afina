@@ -42,7 +42,7 @@ public:
      * been destoryed
      */
     void Join();
-
+    
 protected:
     
     /**
@@ -51,11 +51,17 @@ protected:
     void OnRun(int server_socket);
 
 private:
+    struct WorkerInfo {
+        Worker* worker;
+        int server_socket;
+
+        WorkerInfo(Worker *p, int number)
+            : worker(p), server_socket(number) {}
+    };    
 
     static void *RunWorkerProxy(void *p);
-    //Each worker is run in its own thread
+    
     pthread_t _thread;
-
     int _server_socket;
     size_t _max_connections = 64;
 
