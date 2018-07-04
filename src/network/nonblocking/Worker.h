@@ -4,6 +4,7 @@
 #include <memory>
 #include <pthread.h>
 #include <atomic>
+#include <unistd.h>
 namespace Afina {
 
 // Forward declaration, see afina/Storage.h
@@ -13,7 +14,14 @@ namespace Network {
 namespace NonBlocking {
 
 const uint32_t EPOLLEXCLUSIVE = (1 << 28); // why do we have to set it explicitly?
-
+struct Connection {
+    Connection(int fd) : socket(fd) {}
+    ~Connection() {
+        close(socket);
+    }
+    int socket;
+    
+};
 /**
  * # Thread running epoll
  * On Start spaws background thread that is doing epoll on the given server
