@@ -29,8 +29,7 @@ void Worker::Start(int server_socket) {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
 
     running.store(true);
-    this->server_socket = (server_socket);
-    this->thread = pthread_self();
+    _server_socket = server_socket;
     //the same way as RunAcceptor in ServerImpl for blocking server
     if (pthread_create(&thread, nullptr, Worker::RunWorkerProxy, this) < 0) {
         throw std::runtime_error("Can't create server thread");
@@ -46,14 +45,14 @@ void Worker::Stop() {
 // See Worker.h
 void Worker::Join() {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
-    shutdown(server_socket, SHUT_RDWR); //further receptions and transmissions will be disallowed
+    shutdown(_server_socket, SHUT_RDWR); //further receptions and transmissions will be disallowed
     pthread_join(thread, nullptr);
     //If retval is not NULL, then pthread_join() copies the exit status of the target thread (i.e., the value that the target thread supplied to pthread_exit(3)) into the location pointed to by retval. 
 }
 void *Worker::RunWorkerProxy(void *p) {
     Worker *wrkr = reinterpret_cast<Worker *>(p);
     try {
-        wrkr->OnRun(wrkr->server_socket);
+        wrkr->OnRun(wrkr->_server_socket);
     } catch (std::runtime_error &ex) {
         std::cerr << "Worker fails: " << ex.what() << std::endl;
     }
