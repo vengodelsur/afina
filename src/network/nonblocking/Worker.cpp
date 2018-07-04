@@ -71,7 +71,6 @@ void Worker::OnRun(int server_socket) {  // read, write
     // TODO: implementation here
     // 1. Create epoll_context here
 
-    int epoll_fd;
     _server_socket = server_socket;
     epoll_fd = epoll_create(_max_events);
     if (epoll_fd < 0) {
@@ -130,7 +129,16 @@ void Worker::OnRun(int server_socket) {  // read, write
                         }
                     }
                 } else {
-                    // 4. Add connections to the local context
+    // 4. Add connections to the local context
+                    make_socket_non_blocking(client_socket); //uses fcntl function for managing file descriptor (sets O_NONBLOCK flag)
+                    _connections.emplace_back(std::move(new Connection(client_socket)));
+
+                    event.data.ptr = _connections.back().get(); // get is unique_ptr member function returning pointer
+                    event.events = EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT ;
+                    
+                    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &event) == -1) {
+                        throw std::runtime_error("Can't add connection to epoll context");
+                    }
                 }
             }
         }

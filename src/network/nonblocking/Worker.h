@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <atomic>
 #include <unistd.h>
+#include <vector>
+
 namespace Afina {
 
 // Forward declaration, see afina/Storage.h
@@ -76,7 +78,9 @@ private:
     size_t _max_events = 32;
 
     std::atomic<bool> _running; //enum class to tell between stopping and stopped worker?
+    std::vector<std::unique_ptr<Connection>> _connections;
    
+    int epoll_fd;
     
 };
 
