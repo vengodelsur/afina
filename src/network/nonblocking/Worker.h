@@ -54,12 +54,12 @@ private:
 
     static void *RunWorkerProxy(void *p);
     //Each worker is run in its own thread
-    pthread_t thread;
+    pthread_t _thread;
 
     int _server_socket;
-    size_t max_connections = 64;
+    size_t _max_connections = 64;
 
-    std::atomic<bool> running; //enum class to tell between stopping and stopped worker?
+    std::atomic<bool> _running; //enum class to tell between stopping and stopped worker?
    
     
 };
