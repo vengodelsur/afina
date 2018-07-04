@@ -41,14 +41,14 @@ void Worker::Start(int server_socket) {
 void Worker::Stop() {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
     running.store(false);
-    shutdown(server_socket, SHUT_RDWR); //further receptions and transmissions will be disallowed
 }
 
 // See Worker.h
 void Worker::Join() {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
-     pthread_join(thread, nullptr);
-     //If retval is not NULL, then pthread_join() copies the exit status of the target thread (i.e., the value that the target thread supplied to pthread_exit(3)) into the location pointed to by retval. 
+    shutdown(server_socket, SHUT_RDWR); //further receptions and transmissions will be disallowed
+    pthread_join(thread, nullptr);
+    //If retval is not NULL, then pthread_join() copies the exit status of the target thread (i.e., the value that the target thread supplied to pthread_exit(3)) into the location pointed to by retval. 
 }
 void *Worker::RunWorkerProxy(void *p) {
     Worker *wrkr = reinterpret_cast<Worker *>(p);
@@ -68,6 +68,7 @@ void Worker::OnRun(int server_socket) { //read, write
 
     // TODO: implementation here
     // 1. Create epoll_context here
+    
     // 2. Add server_socket to context
     // 3. Accept new connections, don't forget to call make_socket_nonblocking on
     //    the client socket descriptor
