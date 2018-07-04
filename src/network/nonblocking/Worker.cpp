@@ -5,7 +5,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-
+#include <unistd.h>
 #include "Utils.h"
 
 namespace Afina {
@@ -78,6 +78,18 @@ void Worker::OnRun(int server_socket) { //read, write
     }
 
     // 2. Add server_socket to context
+
+    // Connection* connection = new Connection(_server_socket); // need to define connection
+
+    struct epoll_event event;
+    event.events = EPOLLEXCLUSIVE | EPOLLHUP | EPOLLERR | EPOLLIN; // epoll_wait always waits for EPOLERR and EPOLLHUP, so it's not obligatory to set them in events
+    // event.data.ptr = connection; // Philipp doesn't approve using map for storing connections by socket, using event field for user data is recommended
+    struct epoll_event events_chunk[_max_events];
+
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, _server_socket, &event) == -1) {
+        throw std::runtime_error("Can't add server socket to context");
+    }
+
     // 3. Accept new connections, don't forget to call make_socket_nonblocking on
     //    the client socket descriptor
     // 4. Add connections to the local context
@@ -85,6 +97,7 @@ void Worker::OnRun(int server_socket) { //read, write
     //
     // Do not forget to use EPOLLEXCLUSIVE flag when register socket
     // for events to avoid thundering herd type behavior.
+    close(epoll_fd);
 }
 
 } // namespace NonBlocking
