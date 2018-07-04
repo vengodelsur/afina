@@ -70,6 +70,13 @@ void Worker::OnRun(int server_socket) { //read, write
     // TODO: implementation here
     // 1. Create epoll_context here
     
+    int epoll_fd;
+    _server_socket = server_socket;
+    epoll_fd = epoll_create(_max_events);
+    if (epoll_fd < 0) {
+        throw std::runtime_error("Can't create epoll context");
+    }
+
     // 2. Add server_socket to context
     // 3. Accept new connections, don't forget to call make_socket_nonblocking on
     //    the client socket descriptor

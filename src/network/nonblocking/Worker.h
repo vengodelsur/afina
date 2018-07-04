@@ -63,7 +63,7 @@ private:
     
     pthread_t _thread;
     int _server_socket;
-    size_t _max_connections = 64;
+    size_t _max_events = 32;
 
     std::atomic<bool> _running; //enum class to tell between stopping and stopped worker?
    
