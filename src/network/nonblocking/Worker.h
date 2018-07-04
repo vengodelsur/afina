@@ -72,6 +72,7 @@ private:
     };    
 
     static void *RunWorkerProxy(void *p);
+    void FinishWorkWithClient(int client_socket);
     
     pthread_t _thread;
     int _server_socket;
@@ -80,7 +81,7 @@ private:
     std::atomic<bool> _running; //enum class to tell between stopping and stopped worker?
     std::vector<std::unique_ptr<Connection>> _connections;
    
-    int epoll_fd;
+    int _epoll_fd;
     
 };
 

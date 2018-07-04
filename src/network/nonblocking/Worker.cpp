@@ -72,8 +72,8 @@ void Worker::OnRun(int server_socket) {  // read, write
     // 1. Create epoll_context here
 
     _server_socket = server_socket;
-    epoll_fd = epoll_create(_max_events);
-    if (epoll_fd < 0) {
+    _epoll_fd = epoll_create(_max_events);
+    if (_epoll_fd < 0) {
         throw std::runtime_error("Can't create epoll context");
     }
 
@@ -91,7 +91,7 @@ void Worker::OnRun(int server_socket) {  // read, write
     // recommended
     struct epoll_event events_chunk[_max_events];
 
-    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, _server_socket, &event) == -1) {
+    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _server_socket, &event) == -1) {
         throw std::runtime_error("Can't add server socket to context");
     }
 
@@ -99,7 +99,7 @@ void Worker::OnRun(int server_socket) {  // read, write
 
     while (_running.load()) {
         // timeout -1 makes epoll_wait wait indefinitely
-        int events_number = epoll_wait(epoll_fd, events_chunk, _max_events, -1);
+        int events_number = epoll_wait(_epoll_fd, events_chunk, _max_events, -1);
         // returns the number of fds ready for I/O, 0 if no fd became ready
         // during the timeout, -1 for error (errno set).
 
@@ -121,7 +121,7 @@ void Worker::OnRun(int server_socket) {  // read, write
                         // the same value, so a portable application should
                         // check for both possibilities".
                         close(_server_socket);
-                        epoll_ctl(epoll_fd, EPOLL_CTL_DEL, _server_socket,
+                        epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, _server_socket,
                                   NULL);
                         // should we close epoll_fd here?
                         if (_running.load()) {
@@ -130,25 +130,52 @@ void Worker::OnRun(int server_socket) {  // read, write
                     }
                 } else {
     // 4. Add connections to the local context
-                    make_socket_non_blocking(client_socket); //uses fcntl function for managing file descriptor (sets O_NONBLOCK flag)
+                    make_socket_non_blocking(client_socket); // uses fcntl function for managing file descriptor (sets O_NONBLOCK flag)
                     _connections.emplace_back(std::move(new Connection(client_socket)));
 
                     event.data.ptr = _connections.back().get(); // get is unique_ptr member function returning pointer
                     event.events = EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT ;
                     
-                    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &event) == -1) {
+                    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_socket, &event) == -1) {
                         throw std::runtime_error("Can't add connection to epoll context");
                     }
                 }
+            } else {
+    // 5. Process connection events
+                int client_socket = connection->socket;
+                if (events_chunk[i].events & EPOLLHUP ||
+                    events_chunk[i].events & EPOLLERR) {
+                    // EPOLLHUP hangup (for some channles it means unexpected
+                    // close of the socket), EPOLERR stands for error condition
+                    FinishWorkWithClient(client_socket);
+                } else if (events_chunk[i].events & (EPOLLIN | EPOLLOUT)) {
+                    // try to read message fron connection
+                } else {
+                    FinishWorkWithClient(client_socket);
+                    throw std::runtime_error("Event type doesn't fit any of expected ones");
+                }
             }
+
+
+
+
+
         }
     }
 
-    // 5. Process connection events
-    //
-    // Do not forget to use EPOLLEXCLUSIVE flag when register socket
-    // for events to avoid thundering herd type behavior.
-    close(epoll_fd);
+    
+    close(_epoll_fd);
+}
+
+void Worker::FinishWorkWithClient(int client_socket) {
+    // should we close client socket here?
+    epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_socket, NULL);
+    for (auto iter = _connections.begin(); iter != _connections.end(); iter++) {
+        if ((*iter)->socket == client_socket) {
+            _connections.erase(iter);
+            break;
+        }
+    }
 }
 
 }  // namespace NonBlocking
