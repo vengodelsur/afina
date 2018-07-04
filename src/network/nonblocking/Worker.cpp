@@ -102,9 +102,16 @@ void Worker::OnRun(int server_socket) {  // read, write
         int events_number = epoll_wait(_epoll_fd, events_chunk, _max_events, -1);
         // returns the number of fds ready for I/O, 0 if no fd became ready
         // during the timeout, -1 for error (errno set).
-
+        /*events is memory where we store elements of type
+         struct epoll_event {
+               uint32_t     events;    // Epoll events
+               epoll_data_t data;      // User data variable
+           };
+        */
         if (events_number == -1) {
             throw std::runtime_error("Error in epoll_wait");
+            // for example, epfd is invalid or we don't have permission to write
+            // to events memory
         }
 
         for (int i = 0; i < events_number; i++) {
@@ -148,7 +155,7 @@ void Worker::OnRun(int server_socket) {  // read, write
                     // EPOLLHUP hangup (for some channles it means unexpected
                     // close of the socket), EPOLERR stands for error condition
                     FinishWorkWithClient(client_socket);
-                } else if (events_chunk[i].events & (EPOLLIN | EPOLLOUT)) {
+                } else if (events_chunk[i].events & (EPOLLIN | EPOLLOUT)) { // file is avaliable for read/write operations
                     // try to read message fron connection
                 } else {
                     FinishWorkWithClient(client_socket);
