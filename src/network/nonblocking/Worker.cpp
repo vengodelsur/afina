@@ -253,7 +253,7 @@ void Worker::OnRun(int server_socket) {
                                   NULL);
                         // should we close epoll_fd here?
                         if (_running.load()) {
-                            throw std::runtime_error("Can't accept");
+                            std::cerr << "Can't accept" << std::endl;
                         }
                     }
                 } else {
@@ -279,8 +279,7 @@ void Worker::OnRun(int server_socket) {
                     }
                 } else {
                     FinishWorkWithClient(client_socket);
-                    throw std::runtime_error(
-                        "Event type doesn't fit any of expected ones");
+                    std::cerr << "Event type doesn't fit any of expected ones"<< std::endl;
                 }
             }
         }
@@ -314,7 +313,7 @@ void Worker::CleanUp() {
 }
 void Worker::FinishWorkWithClient(int client_socket) {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
-    // should we close client socket here?
+    
     // epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_socket, NULL);
     for (auto iter = _connections.begin(); iter != _connections.end(); iter++) {
         if ((*iter)->socket == client_socket) {
