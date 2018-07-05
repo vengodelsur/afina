@@ -83,7 +83,7 @@ void Worker::OnRun(int server_socket) {  // read, write
 
     // 2. Add server_socket to context
 
-    Connection* server_connection = new Connection(_server_socket); 
+    Connection* server_connection = new Connection(_server_socket, _running, _storage_ptr); 
 
     struct epoll_event event;
     event.events = EPOLLEXCLUSIVE | EPOLLHUP | EPOLLERR |
@@ -142,7 +142,7 @@ void Worker::OnRun(int server_socket) {  // read, write
                 } else {
     // 4. Add connections to the local context
                     make_socket_non_blocking(client_socket); // uses fcntl function for managing file descriptor (sets O_NONBLOCK flag)
-                    _connections.emplace_back(std::move(new Connection(client_socket)));
+                    _connections.emplace_back(std::move(new Connection(client_socket, _running, _storage_ptr)));
 
                     event.data.ptr = _connections.back().get(); // get is unique_ptr member function returning pointer
                     event.events = EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT ;
@@ -160,7 +160,7 @@ void Worker::OnRun(int server_socket) {  // read, write
                     // close of the socket), EPOLERR stands for error condition
                     FinishWorkWithClient(client_socket);
                 } else if (events_chunk[i].events & (EPOLLIN | EPOLLOUT)) { // file is avaliable for read/write operations
-                    if (!Process(connection)) {
+                    if (!connection->Process() or !connection->no_errors) {
                         FinishWorkWithClient(client_socket);
                     }
                 } else {
@@ -191,15 +191,7 @@ void Worker::FinishWorkWithClient(int client_socket) {
         }
     }
 }
-bool Worker::Process(Connection* connection) {
-    std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
-    const size_t CHUNK_SIZE = 2048;
-    char chunk[CHUNK_SIZE];
-    Protocol::Parser parser;
-    int socket = connection->socket;
 
-    return false;
-}
 
 
 }  // namespace NonBlocking
