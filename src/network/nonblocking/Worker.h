@@ -114,6 +114,7 @@ class Worker {
     };
 
     static void* RunWorkerProxy(void* p);
+    bool Process(Connection* conn, uint32_t events);
     void AddConnection(int client_socket, epoll_event& event);
     void FinishWorkWithClient(int client_socket);
     void CleanUp();

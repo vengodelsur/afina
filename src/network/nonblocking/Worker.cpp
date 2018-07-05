@@ -55,7 +55,7 @@ bool Connection::SendAnswerStep() {
     }
     return true;
 }
-bool Connection::Process(uint32_t events) {
+/*bool Connection::Process(uint32_t events) {
     while (running.load()) {
         try {
             if (state == State::ReadCommand) {
@@ -131,8 +131,84 @@ bool Connection::Process(uint32_t events) {
         state = State::ReadCommand;
     }
     return false;
-}
+}*/
+bool Worker::Process(Connection* conn, uint32_t events) {
+    while (conn->running.load()) {
+        try {
+            if (conn->state == State::ReadCommand) {
+                conn->parsed_length = 0;
+                while (!conn->parser.Parse(conn->chunk, conn->read_counter, conn->parsed_length)) {
+                    std::memmove(conn->chunk, conn->chunk + conn->parsed_length,
+                                 conn->read_counter - conn->parsed_length);
+                    conn->read_counter -= conn->parsed_length;
 
+                    if (!conn->ReadCommandStep()) return conn->result;
+
+                    conn->read_counter += conn->read_length;
+                }
+                std::memmove(conn->chunk, conn->chunk + conn->parsed_length,
+                             conn->read_counter - conn->parsed_length);
+                conn->read_counter -= conn->parsed_length;
+
+                conn->resulting_command = conn->parser.Build(conn->command_body_size);
+                conn->command_body_size += 2;
+                conn->parser.Reset();
+
+                conn->command_body.clear();
+                conn->state = State::ExtractArguments;
+            }
+
+            if (conn->state == State::ExtractArguments) {
+                if (conn->command_body_size > 2) {
+                    while (conn->command_body_size > conn->read_counter) {
+                        conn->command_body.append(conn->chunk, conn->read_counter);
+                        conn->command_body_size -= conn->read_counter;
+                        conn->read_counter = 0;
+
+                        if (!conn->ExtractArgumentsStep()) return conn->result;
+
+                        conn->read_counter = conn->read_length;
+                    }
+
+                    conn->command_body.append(conn->chunk, conn->command_body_size);
+                    std::memmove(conn->chunk, conn->chunk + conn->command_body_size,
+                                 conn->read_counter - conn->command_body_size);
+                    conn->read_counter -= conn->command_body_size;
+
+                    conn->command_body =
+                        conn->command_body.substr(0, conn->command_body.length() - 2);
+                }
+
+                conn->resulting_command->Execute(*conn->storage_ptr, conn->command_body, conn->answer);
+                conn->answer.append("\r\n");
+                conn->state = State::SendAnswer;
+            }
+
+        } catch (std::runtime_error &e) {
+            conn->answer =
+                std::string("SERVER_ERROR ") + e.what() + std::string("\r\n");
+
+            conn->read_counter = 0;
+            conn->parser.Reset();
+            conn->state = State::SendAnswer;
+        }
+
+        if (events & EPOLLOUT) {
+            if (conn->state == State::SendAnswer) {
+                if (conn->answer.size() > 2) {
+                    while (conn->sent_counter < conn->answer.size()) {
+                        if (!conn->SendAnswerStep()) return conn->result;
+
+                        conn->sent_counter += conn->sent_length;
+                    }
+                }
+                conn->sent_counter = 0;
+            }
+        }
+        conn->state = State::ReadCommand;
+    }
+    return false;
+}
 // See Worker.h
 Worker::Worker(std::shared_ptr<Afina::Storage> ps) : _storage_ptr(ps) {}
 
@@ -271,7 +347,7 @@ void Worker::OnRun(int server_socket) {
                 } else if (events_chunk[i].events &
                            (EPOLLIN | EPOLLOUT)) {  // file is avaliable for
                                                     // read/write operations
-                    if (!connection->Process(events_chunk[i].events)) {
+                    if (!Process(connection, events_chunk[i].events)) {
                         epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_socket,
                                   NULL);
                         FinishWorkWithClient(client_socket);
