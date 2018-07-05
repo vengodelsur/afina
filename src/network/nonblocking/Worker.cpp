@@ -205,9 +205,8 @@ void Worker::OnRun(int server_socket) {
                    EPOLLIN;  // epoll_wait always waits for EPOLERR and
                              // EPOLLHUP, so it's not obligatory to set them in
                              // events
-    event.data.ptr = server_connection;  // Philipp doesn't approve using map
-    // for storing connections by socket, using event field for user data is
-    // recommended
+    event.data.ptr = server_connection;  //  Using map for storing connections by socket is not approved, 
+    // using event field for user data is recommended
     struct epoll_event events_chunk[_max_events];
 
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, _server_socket, &event) == -1) {
