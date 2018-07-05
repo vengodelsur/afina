@@ -257,11 +257,11 @@ void Worker::OnRun(int server_socket) {
                         }
                     }
                 } else {
-                    // 4. Add connections to the local context
+    // 4. Add connections to the local context
                     AddConnection(client_socket, event);
                 }
             } else {
-                // 5. Process connection events
+    // 5. Process connection events
                 int client_socket = connection->socket;
                 if (events_chunk[i].events & EPOLLHUP ||
                     events_chunk[i].events & EPOLLERR) {
