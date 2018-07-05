@@ -184,13 +184,16 @@ void Worker::OnRun(int server_socket) {
     }
 
 
+    CleanUp();
+}
+
+void Worker::CleanUp() {
     for (auto &conn: _connections) {
         epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->socket, NULL);
     }
     _connections.clear();
     close(_epoll_fd);
 }
-
 void Worker::FinishWorkWithClient(int client_socket) {
     std::cout << "network debug: " << __PRETTY_FUNCTION__ << std::endl;
     // should we close client socket here?

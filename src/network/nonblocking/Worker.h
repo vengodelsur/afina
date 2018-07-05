@@ -219,6 +219,7 @@ private:
 
     static void *RunWorkerProxy(void *p);
     void FinishWorkWithClient(int client_socket);
+    void CleanUp();
     
     pthread_t _thread;
     int _server_socket;
