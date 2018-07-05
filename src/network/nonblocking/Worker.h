@@ -63,8 +63,8 @@ public:
     ssize_t read_length;
     ssize_t sent_length;
 
-    bool ReadCommandStep() {
-        read_length = recv(socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
+    bool ReadStep(char* start, size_t size) {
+        read_length = recv(socket, start, size, 0);
                        if (read_length <= 0) {
                            if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
                                result = true;
@@ -75,17 +75,12 @@ public:
                        }    
         return true;
     }
+    bool ReadCommandStep() {
+        return ReadStep(chunk + read_counter, CHUNK_SIZE - read_counter);
+        
+    }
     bool ExtractArgumentsStep() {
-    read_length = recv(socket, chunk, CHUNK_SIZE, 0);
-                           if (read_length <= 0) {
-                               if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
-                                   result = true;
-                               } else {
-                                   result = false;
-                               }
-                               return false;
-                           }
-        return true;
+         return ReadStep(chunk, CHUNK_SIZE);
     }
     bool SendAnswerStep() {
         sent_length = send(socket, answer.data() + sent_counter, answer.size() - sent_counter, 0);
