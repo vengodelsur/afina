@@ -251,7 +251,7 @@ void Worker::OnRun(int server_socket) {
                         close(_server_socket);
                         epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, _server_socket,
                                   NULL);
-                        // should we close epoll_fd here?
+                        
                         if (_running.load()) {
                             std::cerr << "Can't accept" << std::endl;
                         }
