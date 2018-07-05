@@ -64,7 +64,7 @@ public:
     ssize_t sent_length;
 
     bool ReadCommandStep() {
-    read_length = recv(socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
+        read_length = recv(socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
                        if (read_length <= 0) {
                            if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
                                result = true;
@@ -74,6 +74,16 @@ public:
                            return false;
                        }    
         return true;
+    }
+    bool ExtractArgumentsStep() {
+        read_length = recv(socket, chunk, CHUNK_SIZE, 0);
+                           if (read_length <= 0) {
+                               if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
+                                   return true;
+                               } else {
+                                   return false;
+                               }
+                           }
     }
     bool Process(uint32_t events) {
 
@@ -108,14 +118,7 @@ public:
                            read_counter = 0;
 
 
-                           read_length = recv(socket, chunk, CHUNK_SIZE, 0);
-                           if (read_length <= 0) {
-                               if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
-                                   return true;
-                               } else {
-                                   return false;
-                               }
-                           }
+                           if (!ExtractArgumentsStep()) return result;
 
                            read_counter = read_length;
                        }
