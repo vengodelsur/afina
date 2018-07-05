@@ -25,6 +25,114 @@ namespace Afina {
 namespace Network {
 namespace NonBlocking {
 
+bool Connection::ReadStep(char *start, size_t size) {
+    read_length = recv(socket, start, size, 0);
+    if (read_length <= 0) {
+        if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 &&
+            running.load()) {
+            result = true;
+        } else {
+            result = false;
+        }
+        return false;
+    }
+    return true;
+}
+bool Connection::ReadCommandStep() {
+    return ReadStep(chunk + read_counter, CHUNK_SIZE - read_counter);
+}
+bool Connection::ExtractArgumentsStep() { return ReadStep(chunk, CHUNK_SIZE); }
+bool Connection::SendAnswerStep() {
+    sent_length = send(socket, answer.data() + sent_counter,
+                       answer.size() - sent_counter, 0);
+    if (sent_length < 0) {
+        if ((errno == EWOULDBLOCK || errno == EAGAIN) && running.load()) {
+            result = true;
+        } else {
+            result = false;
+        }
+        return false;
+    }
+    return true;
+}
+bool Connection::Process(uint32_t events) {
+    while (running.load()) {
+        try {
+            if (state == State::ReadCommand) {
+                parsed_length = 0;
+                while (!parser.Parse(chunk, read_counter, parsed_length)) {
+                    std::memmove(chunk, chunk + parsed_length,
+                                 read_counter - parsed_length);
+                    read_counter -= parsed_length;
+
+                    if (!ReadCommandStep()) return result;
+
+                    read_counter += read_length;
+                }
+                std::memmove(chunk, chunk + parsed_length,
+                             read_counter - parsed_length);
+                read_counter -= parsed_length;
+
+                resulting_command = parser.Build(command_body_size);
+                command_body_size += 2;
+                parser.Reset();
+
+                command_body.clear();
+                state = State::ExtractArguments;
+            }
+
+            if (state == State::ExtractArguments) {
+                if (command_body_size > 2) {
+                    while (command_body_size > read_counter) {
+                        command_body.append(chunk, read_counter);
+                        command_body_size -= read_counter;
+                        read_counter = 0;
+
+                        if (!ExtractArgumentsStep()) return result;
+
+                        read_counter = read_length;
+                    }
+
+                    command_body.append(chunk, command_body_size);
+                    std::memmove(chunk, chunk + command_body_size,
+                                 read_counter - command_body_size);
+                    read_counter -= command_body_size;
+
+                    command_body =
+                        command_body.substr(0, command_body.length() - 2);
+                }
+
+                resulting_command->Execute(*storage_ptr, command_body, answer);
+                answer.append("\r\n");
+                state = State::SendAnswer;
+            }
+
+        } catch (std::runtime_error &e) {
+            answer =
+                std::string("SERVER_ERROR ") + e.what() + std::string("\r\n");
+            // std::cout << "error catched: " << e.what() <<  std::endl;
+            read_counter = 0;
+            parser.Reset();
+            state = State::SendAnswer;
+        }
+
+        if (events & EPOLLOUT) {
+            if (state == State::SendAnswer) {
+                if (answer.size() > 2) {
+                    while (sent_counter < answer.size()) {
+                        if (!SendAnswerStep()) return result;
+
+                        sent_counter += sent_length;
+                    }
+                }
+                sent_counter = 0;
+            }
+        }
+        state = State::ReadCommand;
+    }
+    return false;
+}
+
 // See Worker.h
 Worker::Worker(std::shared_ptr<Afina::Storage> ps) : _storage_ptr(ps) {}
 
