@@ -63,7 +63,18 @@ public:
     ssize_t read_length;
     ssize_t sent_length;
 
-    
+    bool ReadCommandStep() {
+    read_length = recv(socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
+                       if (read_length <= 0) {
+                           if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
+                               result = true;
+                           } else {
+                               result = false;
+                           }
+                           return false;
+                       }    
+        return true;
+    }
     bool Process(uint32_t events) {
 
         while (running.load()) {
@@ -74,14 +85,7 @@ public:
                        std::memmove(chunk, chunk + parsed_length, read_counter - parsed_length);
                        read_counter -= parsed_length;
 
-                       read_length = recv(socket, chunk + read_counter, CHUNK_SIZE - read_counter, 0);
-                       if (read_length <= 0) {
-                           if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
-                               return true;
-                           } else {
-                               return false;
-                           }
-                       }
+                       if(!ReadCommandStep()) return result;
 
                        read_counter += read_length;
                    }
