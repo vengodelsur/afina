@@ -76,14 +76,16 @@ public:
         return true;
     }
     bool ExtractArgumentsStep() {
-        read_length = recv(socket, chunk, CHUNK_SIZE, 0);
+    read_length = recv(socket, chunk, CHUNK_SIZE, 0);
                            if (read_length <= 0) {
                                if ((errno == EWOULDBLOCK || errno == EAGAIN) && read_length < 0 && running.load()) {
-                                   return true;
+                                   result = true;
                                } else {
-                                   return false;
+                                   result = false;
                                }
+                               return false;
                            }
+        return true;
     }
     bool Process(uint32_t events) {
 
