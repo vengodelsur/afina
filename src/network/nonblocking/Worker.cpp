@@ -193,8 +193,12 @@ bool Worker::Process(Connection* conn, uint32_t events, epoll_event& event) {
             conn->state = State::SendAnswer;
         }
 
-        if (events & EPOLLOUT) {
+        
             if (conn->state == State::SendAnswer) {
+                event.events = EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT;
+                if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, conn->socket, &event) == -1) {
+                  throw std::runtime_error("Can't add EPOLL_OUT");
+                }
                 if (conn->answer.size() > 2) {
                     while (conn->sent_counter < conn->answer.size()) {
                         if (!conn->SendAnswerStep()) return conn->result;
@@ -203,8 +207,12 @@ bool Worker::Process(Connection* conn, uint32_t events, epoll_event& event) {
                     }
                 }
                 conn->sent_counter = 0;
+                event.events = EPOLLHUP | EPOLLERR | EPOLLIN;
+                if (epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, conn->socket, &event) == -1) {
+                  throw std::runtime_error("Can't add EPOLL_OUT");
+                }
             }
-        }
+        
         conn->state = State::ReadCommand;
     }
     return false;
@@ -373,7 +381,7 @@ void Worker::AddConnection(int client_socket, epoll_event &event) {
     event.data.ptr = _connections.back().get();  // get is unique_ptr member
                                                  // function returning
                                                  // pointer
-    event.events = EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT;
+    event.events = EPOLLHUP | EPOLLERR | EPOLLIN;// | EPOLLOUT;
 
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_socket, &event) == -1) {
         throw std::runtime_error("Can't add connection to epoll context");
