@@ -87,6 +87,18 @@ public:
                            }
         return true;
     }
+    bool SendAnswerStep() {
+        sent_length = send(socket, answer.data() + sent_counter, answer.size() - sent_counter, 0);
+                           if (sent_length < 0) {
+                                if ((errno == EWOULDBLOCK || errno == EAGAIN) && running.load()) {
+                                    result = true;
+                                } else {
+                                    result = false;
+                                }
+                                return false;
+                            }
+        return true;
+    }
     bool Process(uint32_t events) {
 
         while (running.load()) {
@@ -151,14 +163,7 @@ public:
                    if (answer.size() > 2) {
                        while (sent_counter < answer.size()) {
                            
-                           sent_length = send(socket, answer.data() + sent_counter, answer.size() - sent_counter, 0);
-                           if (sent_length < 0) {
-                                if ((errno == EWOULDBLOCK || errno == EAGAIN) && running.load()) {
-                                    return true;
-                                } else {
-                                    return false;
-                                }
-                            }
+                           if(!SendAnswerStep()) return result;
 
                            sent_counter += sent_length;
                        }
