@@ -132,7 +132,7 @@ bool Connection::SendAnswerStep() {
     }
     return false;
 }*/
-bool Worker::Process(Connection* conn, uint32_t events) {
+bool Worker::Process(Connection* conn, uint32_t events, epoll_event& event) {
     while (conn->running.load()) {
         try {
             if (conn->state == State::ReadCommand) {
@@ -347,7 +347,7 @@ void Worker::OnRun(int server_socket) {
                 } else if (events_chunk[i].events &
                            (EPOLLIN | EPOLLOUT)) {  // file is avaliable for
                                                     // read/write operations
-                    if (!Process(connection, events_chunk[i].events)) {
+                    if (!Process(connection, events_chunk[i].events, event)) {
                         epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_socket,
                                   NULL);
                         FinishWorkWithClient(client_socket);
