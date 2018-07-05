@@ -28,13 +28,13 @@ enum class State { ReadCommand, ExtractArguments, SendAnswer };
 
 class Connection {
    public:
-    Connection(int _socket, std::atomic<bool>& running,
+    Connection(int fd, std::atomic<bool>& running,
                std::shared_ptr<Afina::Storage> ps)
-        : socket(_socket),
+        : socket(fd),
           state(State::ReadCommand),
           storage_ptr(ps),
           running(running) {}
-    ~Connection(void) { close(socket); }
+    ~Connection() { close(socket); }
 
     int socket;
     std::shared_ptr<Afina::Storage> storage_ptr;
@@ -114,6 +114,7 @@ class Worker {
     };
 
     static void* RunWorkerProxy(void* p);
+    void AddConnection(int client_socket, epoll_event& event);
     void FinishWorkWithClient(int client_socket);
     void CleanUp();
 
@@ -121,8 +122,7 @@ class Worker {
     int _server_socket;
     size_t _max_events = 32;
 
-    std::atomic<bool>
-        _running;  // enum class to tell between stopping and stopped worker?
+    std::atomic<bool> _running;
     std::vector<std::unique_ptr<Connection>> _connections;
 
     int _epoll_fd;

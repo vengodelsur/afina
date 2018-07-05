@@ -110,7 +110,7 @@ bool Connection::Process(uint32_t events) {
         } catch (std::runtime_error &e) {
             answer =
                 std::string("SERVER_ERROR ") + e.what() + std::string("\r\n");
-            // std::cout << "error catched: " << e.what() <<  std::endl;
+
             read_counter = 0;
             parser.Reset();
             state = State::SendAnswer;
@@ -258,24 +258,7 @@ void Worker::OnRun(int server_socket) {
                     }
                 } else {
                     // 4. Add connections to the local context
-                    make_socket_non_blocking(
-                        client_socket);  // uses fcntl function for managing
-                                         // file descriptor (sets O_NONBLOCK
-                                         // flag)
-                    _connections.emplace_back(std::move(
-                        new Connection(client_socket, _running, _storage_ptr)));
-
-                    event.data.ptr =
-                        _connections.back().get();  // get is unique_ptr member
-                                                    // function returning
-                                                    // pointer
-                    event.events = EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT;
-
-                    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_socket,
-                                  &event) == -1) {
-                        throw std::runtime_error(
-                            "Can't add connection to epoll context");
-                    }
+                    AddConnection(client_socket, event);
                 }
             } else {
                 // 5. Process connection events
@@ -305,7 +288,23 @@ void Worker::OnRun(int server_socket) {
 
     CleanUp();
 }
+void Worker::AddConnection(int client_socket, epoll_event &event) {
+    make_socket_non_blocking(
+        client_socket);  // uses fcntl function for managing
+                         // file descriptor (sets O_NONBLOCK
+                         // flag)
+    _connections.emplace_back(
+        std::move(new Connection(client_socket, _running, _storage_ptr)));
 
+    event.data.ptr = _connections.back().get();  // get is unique_ptr member
+                                                 // function returning
+                                                 // pointer
+    event.events = EPOLLHUP | EPOLLERR | EPOLLIN | EPOLLOUT;
+
+    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, client_socket, &event) == -1) {
+        throw std::runtime_error("Can't add connection to epoll context");
+    }
+}
 void Worker::CleanUp() {
     for (auto &conn : _connections) {
         epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, conn->socket, NULL);
